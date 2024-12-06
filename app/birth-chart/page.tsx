@@ -29,7 +29,7 @@ export default function BirthChart() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 1 }}
-              className="text-white/70 text-center max-w-md mx-auto"
+              className="font-lato text-white/70 text-center max-w-md mx-auto"
             >
               Create your personalized birth chart for free by filling out the form. Discover our tools for interactive planets, asteroids, house systems, orbs, declinations, and more to suit your preferences.
             </motion.p>
@@ -38,7 +38,7 @@ export default function BirthChart() {
 
         {/* Right side with form */}
         <div className="min-h-screen flex items-center justify-center">
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-md font-lato">
             <BirthChartForm onSubmit={setBirthChartData} />
           </div>
         </div>

@@ -57,7 +57,7 @@ export function LocationSearch({ onLocationSelect }: LocationSearchProps) {
   }, [])
 
   return (
-    <div ref={wrapperRef} className="relative w-full max-w-md">
+    <div ref={wrapperRef} className="relative w-full">
       <div className="relative">
         <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
           <MapPin className="w-4 h-4 text-gray-400 dark:text-white/40" />
@@ -67,7 +67,7 @@ export function LocationSearch({ onLocationSelect }: LocationSearchProps) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onFocus={() => setIsOpen(true)}
-          className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-0 h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/30 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
+          className="border border-gray-200 dark:border-white/10 h-11 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/30 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
         />
       </div>
       

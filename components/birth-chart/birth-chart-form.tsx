@@ -43,10 +43,10 @@ export function BirthChartForm({ onSubmit }: BirthChartFormProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="backdrop-blur-sm p-8 mx-6 rounded-xl"
+      className="backdrop-blur-sm rounded-xl"
     >
-      <form onSubmit={handleSubmit} className="m-auto space-y-6 align-y p-6 rounded-xl relative flex-col justify-center items-center">
-        <div className="relative w-full max-w-md">
+      <form onSubmit={handleSubmit} className="space-y-5 flex-col justify-center items-center">
+        <div className="relative w-full">
           <div className={`absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none ${name ? 'hidden' : 'block'}`}>
             <CircleUserRound className="w-4 h-4 text-gray-400 dark:text-white/40" />
           </div>
@@ -54,33 +54,33 @@ export function BirthChartForm({ onSubmit }: BirthChartFormProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Enter your name"
-            className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-0 h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/30 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
+            className="border border-gray-200 dark:border-white/10 h-11 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/30 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
           />
         </div>
 
-        <div className="relative w-full max-w-md">
-          <div className="flex items-center bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-0 h-10 rounded-xl focus-within:ring-1 focus-within:ring-[#FFA600]/50">
+        <div className="relative w-full">
+          <div className="flex items-center border border-gray-200 dark:border-white/10 h-11 rounded-xl focus-within:ring-1 focus-within:ring-[#FFA600]/50">
             <div className="pl-3">
-              <CalendarDays className="w-5 h-5 text-gray-400 dark:text-white/40" />
+              <CalendarDays className="w-4 h-4 text-gray-400 dark:text-white/40" />
             </div>
             <input
-              type="TEXT"
+              type="date"
               value={date || ""}
               onChange={(e) => setDate(e.target.value)}
               max={format(new Date(), "yyyy-MM-dd")}
-              placeholder="Enter your birth date"
-              className="bg-transparent border-0 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/40 text-sm rounded-xl focus:outline-none focus:ring-0 pl-4 pr-4 w-full"
+              placeholder="mm/dd/yyyy"
+              className="bg-transparent border-0 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/40 text-sm rounded-xl focus:outline-none focus:ring-0 pl-4 pr-4 w-full h-11"
             />
           </div>
         </div>
 
-        <div className="relative w-full max-w-md">
+        <div className="relative w-full">
           <LocationSearch onLocationSelect={(loc) => setLocation(loc)} />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center space-x-4 text-sm text-gray-900 dark:text-white/70">
-            <span className="text-sm px-4 font-light">Birth Time</span>
+            <span className="text-sm font-light">Birth Time</span>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="radio"
@@ -104,19 +104,24 @@ export function BirthChartForm({ onSubmit }: BirthChartFormProps) {
               <span>Unknown</span>
             </label>
           </div>
-          <Input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            disabled={timeKnown === "no"}
-            placeholder="Birthtime"
-            className="w-full max-w-md bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-0 h-10 text-gray-900 dark:text-white/40 placeholder:text-gray-500 dark:placeholder:text-white/40 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
-          />
+          <div className="relative w-full">
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              <Clock className="w-4 h-4 text-gray-400 dark:text-white/40" />
+            </div>
+            <Input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              disabled={timeKnown === "no"}
+              placeholder="--:-- --"
+              className="border border-gray-200 dark:border-white/10 h-11 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/40 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
+            />
+          </div>
         </div>
 
         <Button
           type="submit"
-          className="w-full h-12 bg-gradient-to-r from-[#D15200] to-[#FFA600] hover:opacity-90 text-white font-medium"
+          className="w-full h-11 bg-gradient-to-r from-[#D15200] to-[#FFA600] hover:opacity-90 text-white font-medium mt-2"
         >
           <Sparkles className="w-4 h-4 mr-2" />
           Generate Birth Chart

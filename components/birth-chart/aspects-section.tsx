@@ -9,8 +9,6 @@ interface Aspect {
   type: string
   degree: string
   orb?: string
-  nature?: 'harmonious' | 'challenging' | 'neutral'
-  description?: string
 }
 
 interface AspectsSectionProps {
@@ -18,52 +16,73 @@ interface AspectsSectionProps {
 }
 
 export function AspectsSection({ aspects }: AspectsSectionProps) {
-  const getAspectSymbol = (type: string) => {
-    const symbols = {
-      conjunction: '☌',
-      opposition: '☍',
-      trine: '△',
-      square: '□',
-      sextile: '⚹',
-      quincunx: '⚻',
-      semisextile: '⚺'
-    }
-    return symbols[type.toLowerCase() as keyof typeof symbols] || '•'
-  }
+  const majorAspects = [
+    { symbol: "□", aspect: "North Node Square Chiron", orb: "0°" },
+    { symbol: "△", aspect: "Pluto Trine MC", orb: "0°" },
+    { symbol: "⚹", aspect: "Neptune Sextile Pluto", orb: "1°" },
+    { symbol: "⚹", aspect: "Uranus Sextile Ascendant", orb: "1°" },
+    { symbol: "⚹", aspect: "Mars Sextile Jupiter", orb: "1°" },
+    { symbol: "⚹", aspect: "Sun Sextile North Node", orb: "2°" },
+    { symbol: "□", aspect: "Neptune Square Ascendant", orb: "2°" },
+    { symbol: "☍", aspect: "Neptune Opposition MC", orb: "2°" },
+    { symbol: "☌", aspect: "Moon Conjunction Saturn", orb: "2°" },
+    { symbol: "⚹", aspect: "Jupiter Sextile Uranus", orb: "3°" },
+    { symbol: "△", aspect: "Neptune Trine North Node", orb: "3°" },
+    { symbol: "⚹", aspect: "North Node Sextile MC", orb: "4°" },
+    { symbol: "⚹", aspect: "Pluto Sextile North Node", orb: "4°" },
+    { symbol: "☌", aspect: "Jupiter Conjunction Ascendant", orb: "4°" },
+    { symbol: "☌", aspect: "Jupiter Conjunction Saturn", orb: "6°" },
+    { symbol: "☌", aspect: "Sun Conjunction Pluto", orb: "8°" }
+  ]
 
-  const getAspectColor = (nature: 'harmonious' | 'challenging' | 'neutral' = 'neutral') => {
-    switch (nature) {
-      case 'harmonious':
-        return 'text-emerald-500 dark:text-emerald-400'
-      case 'challenging':
-        return 'text-red-500 dark:text-red-400'
-      default:
-        return 'text-blue-500 dark:text-blue-400'
-    }
-  }
+  const minorAspects = [
+    { symbol: "⚼", aspect: "Saturn Sesquiquadrate Chiron", orb: "0°" },
+    { symbol: "∠", aspect: "Saturn Octile North Node", orb: "0°" },
+    { symbol: "⚸", aspect: "Saturn Septile Uranus", orb: "0°" },
+    { symbol: "⚸", aspect: "Venus Quintile MC", orb: "0°" },
+    { symbol: "⚺", aspect: "Venus Semi-sextile Saturn", orb: "1°" },
+    { symbol: "⚺", aspect: "Moon Semi-sextile Venus", orb: "1°" },
+    { symbol: "⚼", aspect: "Moon Sesquiquadrate Chiron", orb: "2°" },
+    { symbol: "⚻", aspect: "Uranus Quincunx MC", orb: "2°" },
+    { symbol: "∠", aspect: "Sun Octile Mars", orb: "2°" },
+    { symbol: "⚼", aspect: "Moon Sesquiquadrate Chiron", orb: "2°" },
+    { symbol: "∠", aspect: "Moon Octile Venus", orb: "2°" },
+    { symbol: "⚸", aspect: "Sun Quintile Mars", orb: "3°" },
+    { symbol: "∠", aspect: "Venus Octile Pluto", orb: "3°" },
+    { symbol: "⚺", aspect: "Chiron Semi-sextile MC", orb: "4°" }
+  ]
 
-  const getAspectDescription = (type: string) => {
-    const descriptions = {
-      conjunction: 'Planets join forces, creating intensity and focus',
-      opposition: 'Planets face off, creating tension and awareness',
-      trine: 'Planets flow together harmoniously',
-      square: 'Planets create dynamic tension and motivation',
-      sextile: 'Planets cooperate and create opportunities',
-      quincunx: 'Planets require adjustment and adaptation',
-      semisextile: 'Planets create subtle connections'
-    }
-    return descriptions[type.toLowerCase() as keyof typeof descriptions] || ''
-  }
+  const renderAspectColumns = (aspects: typeof majorAspects) => {
+    const halfLength = Math.ceil(aspects.length / 2)
+    const leftColumn = aspects.slice(0, halfLength)
+    const rightColumn = aspects.slice(halfLength)
 
-  // Group aspects by type
-  const groupedAspects = aspects.reduce((acc, aspect) => {
-    const type = aspect.type.toLowerCase()
-    if (!acc[type]) {
-      acc[type] = []
-    }
-    acc[type].push(aspect)
-    return acc
-  }, {} as Record<string, Aspect[]>)
+    return (
+      <div className="grid grid-cols-2 gap-x-6">
+        {/* Left Column */}
+        <div className="space-y-2">
+          {leftColumn.map((aspect, index) => (
+            <div key={index} className="flex items-center space-x-2">
+              <span className="text-lg leading-none">{aspect.symbol}</span>
+              <span className="text-sm">{aspect.aspect}</span>
+              <span className="text-xs text-gray-500">orb: {aspect.orb}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-2">
+          {rightColumn.map((aspect, index) => (
+            <div key={index} className="flex items-center space-x-2">
+              <span className="text-lg leading-none">{aspect.symbol}</span>
+              <span className="text-sm">{aspect.aspect}</span>
+              <span className="text-xs text-gray-500">orb: {aspect.orb}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <motion.div
@@ -72,87 +91,62 @@ export function AspectsSection({ aspects }: AspectsSectionProps) {
       transition={{ delay: 0.6 }}
       className="bg-white/5 backdrop-blur-sm rounded-xl p-6 space-y-4"
     >
-      <h2 className="text-lg font-futura text-gray-900 dark:text-white">Planetary Aspects</h2>
+      <h2 className="text-lg font-futura text-gray-900 dark:text-white">Aspects</h2>
       
-      <div className="space-y-6">
-        {Object.entries(groupedAspects).map(([type, typeAspects]) => (
-          <div key={type} className="space-y-3">
-            <h3 className="text-sm font-medium flex items-center space-x-2">
-              <span className="text-[#D15200] dark:text-[#FFA600]">
-                {type.charAt(0).toUpperCase() + type.slice(1)}
-              </span>
-              <span className="text-2xl leading-none">
-                {getAspectSymbol(type)}
-              </span>
-            </h3>
-            
-            <div className="pl-4 space-y-2">
-              <p className="text-xs text-gray-600 dark:text-gray-300">
-                {getAspectDescription(type)}
-              </p>
-              
-              {typeAspects.map((aspect, index) => (
-                <div 
-                  key={`${aspect.planet1}-${aspect.planet2}-${index}`}
-                  className="flex items-center space-x-3 text-sm"
-                >
-                  <span className={getAspectColor(aspect.nature)}>
-                    {aspect.planet1}
-                  </span>
-                  <span className="text-xl leading-none">
-                    {getAspectSymbol(type)}
-                  </span>
-                  <span className={getAspectColor(aspect.nature)}>
-                    {aspect.planet2}
-                  </span>
-                  <span className="text-gray-500 dark:text-gray-400 text-xs">
-                    {aspect.degree}
-                    {aspect.orb && ` (orb ${aspect.orb}°)`}
-                  </span>
-                </div>
-              ))}
-              
-              {typeAspects.map((aspect, index) => (
-                aspect.description && (
-                  <p 
-                    key={`desc-${aspect.planet1}-${aspect.planet2}-${index}`}
-                    className="text-xs text-gray-500 dark:text-gray-400 pl-4"
-                  >
-                    {aspect.description}
-                  </p>
-                )
-              ))}
-            </div>
-          </div>
-        ))}
+      <p className="text-sm text-gray-600 dark:text-gray-300">
+        The aspects describe the geometric angles between the planets. Each shape they produce has a different meaning.
+      </p>
+
+      {/* Major Aspects */}
+      {renderAspectColumns(majorAspects)}
+
+      {/* Minor Aspects */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+        <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Minor Aspects</h3>
+        {renderAspectColumns(minorAspects)}
       </div>
 
-      {/* Aspect Patterns */}
-      <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+      {/* Legend */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
         <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-          Major Aspect Patterns
+          Aspect Types
         </h3>
-        <div className="space-y-2">
-          {/* Grand Trine */}
-          <div className="text-sm">
-            <span className="text-[#D15200] dark:text-[#FFA600] font-medium">Grand Trine:</span>
-            <span className="text-gray-600 dark:text-gray-300 ml-2">
-              Three planets form an equilateral triangle (120° each)
-            </span>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">☌</span>
+            <span className="text-gray-600 dark:text-gray-300">Conjunction</span>
           </div>
-          {/* T-Square */}
-          <div className="text-sm">
-            <span className="text-[#D15200] dark:text-[#FFA600] font-medium">T-Square:</span>
-            <span className="text-gray-600 dark:text-gray-300 ml-2">
-              Two planets in opposition, both square to a third
-            </span>
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">□</span>
+            <span className="text-gray-600 dark:text-gray-300">Square</span>
           </div>
-          {/* Yod */}
-          <div className="text-sm">
-            <span className="text-[#D15200] dark:text-[#FFA600] font-medium">Yod:</span>
-            <span className="text-gray-600 dark:text-gray-300 ml-2">
-              Two planets in sextile, both quincunx to a third
-            </span>
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">△</span>
+            <span className="text-gray-600 dark:text-gray-300">Trine</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">⚹</span>
+            <span className="text-gray-600 dark:text-gray-300">Sextile</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">⚻</span>
+            <span className="text-gray-600 dark:text-gray-300">Quincunx</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">⚺</span>
+            <span className="text-gray-600 dark:text-gray-300">Semi-sextile</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">⚼</span>
+            <span className="text-gray-600 dark:text-gray-300">Sesquiquadrate</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">⚸</span>
+            <span className="text-gray-600 dark:text-gray-300">Quintile</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-lg">∠</span>
+            <span className="text-gray-600 dark:text-gray-300">Octile</span>
           </div>
         </div>
       </div>

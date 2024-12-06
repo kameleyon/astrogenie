@@ -124,14 +124,13 @@ export function BirthChartResult() {
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-6 order-3 lg:order-1">
             <PlanetsSection planets={sampleData.planets} />
             <HousesSection houses={sampleData.houses} />
-            <AspectsSection aspects={sampleData.aspects} />
           </div>
 
           {/* Center Column */}
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-6 order-1 lg:order-2">
             <div className="sticky top-4 space-y-6">
               <InteractiveWheel
                 houses={sampleData.houses}
@@ -167,12 +166,48 @@ export function BirthChartResult() {
                   mutable: 3
                 }}
               />
+              <AspectsSection aspects={sampleData.aspects} />
             </div>
           </div>
 
           {/* Right Column */}
-          <div className="lg:col-span-3 space-y-6">
-            <PatternsSection patterns={sampleData.patterns} />
+          <div className="lg:col-span-3 space-y-6 order-2 lg:order-3">
+            <TransitEffects
+              currentDate="January 15, 2024"
+              effects={[
+                {
+                  planet: {
+                    name: "Jupiter",
+                    sign: "Taurus",
+                    degree: "5°",
+                    retrograde: false
+                  },
+                  house: 9,
+                  aspects: [
+                    {
+                      transitPlanet: "Jupiter",
+                      natalPlanet: "Venus",
+                      type: "trine",
+                      degree: "120°",
+                      orb: "2",
+                      applying: true
+                    }
+                  ],
+                  influence: "Period of expansion in education or travel",
+                  duration: "2 months",
+                  theme: "opportunity"
+                }
+              ]}
+              summary="Current transits suggest a period of growth and expansion, particularly in areas of personal development and learning."
+              significantPeriods={[
+                {
+                  startDate: "Feb 1, 2024",
+                  endDate: "Mar 15, 2024",
+                  description: "Jupiter trine Venus brings opportunities for growth",
+                  intensity: "high"
+                }
+              ]}
+            />
             <CompatibilitySection
               bestMatches={[
                 {
@@ -213,42 +248,7 @@ export function BirthChartResult() {
               ]}
               generalAdvice="Your chart indicates a natural ability to create harmony in relationships, with a particular strength in diplomatic communication."
             />
-            <TransitEffects
-              currentDate="January 15, 2024"
-              effects={[
-                {
-                  planet: {
-                    name: "Jupiter",
-                    sign: "Taurus",
-                    degree: "5°",
-                    retrograde: false
-                  },
-                  house: 9,
-                  aspects: [
-                    {
-                      transitPlanet: "Jupiter",
-                      natalPlanet: "Venus",
-                      type: "trine",
-                      degree: "120°",
-                      orb: "2",
-                      applying: true
-                    }
-                  ],
-                  influence: "Period of expansion in education or travel",
-                  duration: "2 months",
-                  theme: "opportunity"
-                }
-              ]}
-              summary="Current transits suggest a period of growth and expansion, particularly in areas of personal development and learning."
-              significantPeriods={[
-                {
-                  startDate: "Feb 1, 2024",
-                  endDate: "Mar 15, 2024",
-                  description: "Jupiter trine Venus brings opportunities for growth",
-                  intensity: "high"
-                }
-              ]}
-            />
+            <PatternsSection patterns={sampleData.patterns} />
           </div>
         </div>
       </div>

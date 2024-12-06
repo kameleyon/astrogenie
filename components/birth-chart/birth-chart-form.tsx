@@ -1,42 +1,92 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { MapPin, Clock, CircleUserRound, Sparkles, CalendarDays } from "lucide-react";
-import { BirthChartData } from "@/lib/types/birth-chart";
-import { LocationSearch } from "./location-search";
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { format } from "date-fns"
+import { MapPin, Clock, CircleUserRound, Sparkles, CalendarDays } from "lucide-react"
+import { type BirthChartData } from "@/lib/types/birth-chart"
+import { LocationSearch } from "./location-search"
 
 interface BirthChartFormProps {
-  onSubmit: (data: BirthChartData) => void;
+  onSubmit: (data: BirthChartData) => void
+}
+
+interface Location {
+  name: string
+  coordinates: [number, number] // [longitude, latitude]
 }
 
 export function BirthChartForm({ onSubmit }: BirthChartFormProps) {
-  const [date, setDate] = useState<string | undefined>(undefined);
-  const [location, setLocation] = useState<{ name: string; coordinates: [number, number] }>();
-  const [timeKnown, setTimeKnown] = useState("yes");
-  const [name, setName] = useState("");
-  const [time, setTime] = useState("");
+  const [date, setDate] = useState<string | undefined>(undefined)
+  const [location, setLocation] = useState<Location | undefined>()
+  const [timeKnown, setTimeKnown] = useState("yes")
+  const [name, setName] = useState("")
+  const [time, setTime] = useState("")
+  const [isFormComplete, setIsFormComplete] = useState(false)
+
+  const handleLocationSelect = (loc: Location) => {
+    setLocation(loc)
+  }
+
+  const validateForm = () => {
+    if (!name || !date || !location) return false
+    if (timeKnown === "yes" && !time) return false
+    return true
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!date || !location) return;
+    e.preventDefault()
+    
+    if (!validateForm()) {
+      setIsFormComplete(false)
+      return
+    }
 
+    // Create mock data for testing
     const mockData: BirthChartData = {
-      sunSign: "Leo",
-      moonSign: "Pisces",
-      ascendant: "Virgo",
+      name,
+      location: location?.name || "",
+      date: format(new Date(date || ""), "MMM d, yyyy"),
+      time: time || "Unknown",
       planets: [
-        { name: "Sun", sign: "Leo", house: 11 },
-        { name: "Moon", sign: "Pisces", house: 6 },
-        { name: "Mercury", sign: "Virgo", house: 12 },
+        { name: "Sun", sign: "Leo", degree: "15° 30'", house: 11 },
+        { name: "Moon", sign: "Pisces", degree: "4° 20'", house: 6 },
+        { name: "Mercury", sign: "Virgo", degree: "9° 15'", house: 12 }
       ],
-    };
+      houses: [
+        { number: 1, sign: "Virgo", degree: "22°", startDegree: 0 },
+        { number: 2, sign: "Libra", degree: "18°", startDegree: 30 },
+        { number: 3, sign: "Scorpio", degree: "17°", startDegree: 60 },
+        { number: 4, sign: "Sagittarius", degree: "21°", startDegree: 90 },
+        { number: 5, sign: "Capricorn", degree: "25°", startDegree: 120 },
+        { number: 6, sign: "Aquarius", degree: "28°", startDegree: 150 },
+        { number: 7, sign: "Pisces", degree: "22°", startDegree: 180 },
+        { number: 8, sign: "Aries", degree: "18°", startDegree: 210 },
+        { number: 9, sign: "Taurus", degree: "17°", startDegree: 240 },
+        { number: 10, sign: "Gemini", degree: "21°", startDegree: 270 },
+        { number: 11, sign: "Cancer", degree: "25°", startDegree: 300 },
+        { number: 12, sign: "Leo", degree: "26°", startDegree: 330 }
+      ],
+      aspects: [],
+      patterns: [
+        {
+          name: "Stellium",
+          type: "major",
+          description: "A powerful concentration of planetary energy",
+          planets: [
+            { name: "Sun", sign: "Leo", degree: "15° 30'" },
+            { name: "Mercury", sign: "Virgo", degree: "9° 15'" },
+            { name: "Venus", sign: "Leo", degree: "20° 45'" }
+          ]
+        }
+      ]
+    }
 
-    onSubmit(mockData);
-  };
+    setIsFormComplete(true)
+    onSubmit(mockData)
+  }
 
   return (
     <motion.div
@@ -75,7 +125,7 @@ export function BirthChartForm({ onSubmit }: BirthChartFormProps) {
         </div>
 
         <div className="relative w-full">
-          <LocationSearch onLocationSelect={(loc) => setLocation(loc)} />
+          <LocationSearch onLocationSelect={handleLocationSelect} />
         </div>
 
         <div className="space-y-3">
@@ -121,12 +171,13 @@ export function BirthChartForm({ onSubmit }: BirthChartFormProps) {
 
         <Button
           type="submit"
-          className="w-full h-11 bg-gradient-to-r from-[#D15200] to-[#FFA600] hover:opacity-90 text-white font-medium mt-2"
+          disabled={!validateForm()}
+          className="w-full h-11 bg-gradient-to-r from-[#D15200] to-[#FFA600] hover:opacity-90 text-white font-medium mt-2 disabled:opacity-50"
         >
           <Sparkles className="w-4 h-4 mr-2" />
           Generate Birth Chart
         </Button>
       </form>
     </motion.div>
-  );
+  )
 }

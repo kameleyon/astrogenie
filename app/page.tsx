@@ -31,13 +31,13 @@ export default function Home() {
             />
           </motion.div>
           <div className="space-y-4">
-            <h1 className="font-futura text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
+            <h1 className="font-futura text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl text-gray-900 dark:text-white">
               Welcome to{" "}
               <span className="bg-gradient-to-r from-[#D15200] to-[#FFA600] bg-clip-text text-transparent">
                 AstroGenie
               </span>
             </h1>
-            <p className="font-lato mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
+            <p className="font-lato mx-auto max-w-[700px] text-gray-600 dark:text-gray-400 md:text-xl">
               Your personal AI-powered astrological companion. Discover your cosmic path and unlock the secrets written in the stars.
             </p>
           </div>

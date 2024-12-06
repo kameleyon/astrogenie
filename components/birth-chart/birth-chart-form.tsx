@@ -45,30 +45,23 @@ export function BirthChartForm({ onSubmit }: BirthChartFormProps) {
       transition={{ delay: 0.2 }}
       className="backdrop-blur-sm p-8 mx-6 rounded-xl"
     >
-      <form onSubmit={handleSubmit} className="m-auto space-y-6 align-y shadow-lg shadow-black p-6 rounded-xl relative flex-col justify-center items-center">
-        <div className="space-y-2 text-white/70 text-center md:text-left font-futura text-2xl md:text-3xl font-light">
-            
-              Fill out the form
-            
-            
-          </div>
+      <form onSubmit={handleSubmit} className="m-auto space-y-6 align-y p-6 rounded-xl relative flex-col justify-center items-center">
         <div className="relative w-full max-w-md">
           <div className={`absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none ${name ? 'hidden' : 'block'}`}>
-            <CircleUserRound className="w-4 h-4 text-white/40" />
+            <CircleUserRound className="w-4 h-4 text-gray-400 dark:text-white/40" />
           </div>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Enter your name"
-            className="bg-white/5 border-0 h-10 text-white placeholder:text-white/30 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
+            className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-0 h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/30 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
           />
         </div>
 
-        <div className="relative w-full max-w-md text-white/40">
-          {/* Wrapper to hold both the icon and the input */}
-          <div className="flex items-center bg-white/5 border-0 h-10 rounded-xl focus-within:ring-1 focus-within:ring-[#FFA600]/50">
+        <div className="relative w-full max-w-md">
+          <div className="flex items-center bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-0 h-10 rounded-xl focus-within:ring-1 focus-within:ring-[#FFA600]/50">
             <div className="pl-3">
-              <CalendarDays className="w-5 h-5 text-white/40" />
+              <CalendarDays className="w-5 h-5 text-gray-400 dark:text-white/40" />
             </div>
             <input
               type="TEXT"
@@ -76,8 +69,7 @@ export function BirthChartForm({ onSubmit }: BirthChartFormProps) {
               onChange={(e) => setDate(e.target.value)}
               max={format(new Date(), "yyyy-MM-dd")}
               placeholder="Enter your birth date"
-              className="bg-transparent border-0 text-white/40 placeholder:text-white/40 text-sm rounded-xl focus:outline-none focus:ring-0 pl-4 pr-4 w-full"
-              style={{ colorScheme: 'dark' }}
+              className="bg-transparent border-0 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/40 text-sm rounded-xl focus:outline-none focus:ring-0 pl-4 pr-4 w-full"
             />
           </div>
         </div>
@@ -87,8 +79,8 @@ export function BirthChartForm({ onSubmit }: BirthChartFormProps) {
         </div>
 
         <div className="space-y-2">
-          
-          <div className="flex items-center space-x-4 text-sm text-white/70"><span className="text-sm px-4 font-light">Birth Time</span>
+          <div className="flex items-center space-x-4 text-sm text-gray-900 dark:text-white/70">
+            <span className="text-sm px-4 font-light">Birth Time</span>
             <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="radio"
@@ -118,7 +110,7 @@ export function BirthChartForm({ onSubmit }: BirthChartFormProps) {
             onChange={(e) => setTime(e.target.value)}
             disabled={timeKnown === "no"}
             placeholder="Birthtime"
-            className=" w-full max-w-md bg-white/5 border-0 h-10 text-white/40 placeholder:text-white/40 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
+            className="w-full max-w-md bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-0 h-10 text-gray-900 dark:text-white/40 placeholder:text-gray-500 dark:placeholder:text-white/40 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
           />
         </div>
 

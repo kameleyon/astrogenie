@@ -39,7 +39,10 @@ export default function BirthChart() {
         {/* Right side with form */}
         <div className="min-h-screen flex items-center justify-center">
           <div className="w-full max-w-md font-lato">
-            <BirthChartForm onSubmit={setBirthChartData} />
+            <h2 className="text-2xl font-futura mb-6 text-center text-gray-900 dark:text-white">Fill out the form</h2>
+            <div className="text-gray-900 dark:text-white">
+              <BirthChartForm onSubmit={setBirthChartData} />
+            </div>
           </div>
         </div>
       </div>

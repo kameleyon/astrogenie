@@ -57,15 +57,19 @@ export function LocationSearch({ onLocationSelect }: LocationSearchProps) {
   }, [])
 
   return (
-    
-    <div ref={wrapperRef} className="relative w-full max-w-md text-white/40">
-       <Input
-        placeholder="Start typing your birth place..."
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onFocus={() => setIsOpen(true)}
-        className="bg-white/1 border-0 h-10 text-white placeholder:text-white/30 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50"
-      />
+    <div ref={wrapperRef} className="relative w-full max-w-md">
+      <div className="relative">
+        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+          <MapPin className="w-4 h-4 text-gray-400 dark:text-white/40" />
+        </div>
+        <Input
+          placeholder="Start typing your birth place..."
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onFocus={() => setIsOpen(true)}
+          className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-0 h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-white/30 text-sm rounded-xl focus-visible:ring-1 focus-visible:ring-[#FFA600]/50 pl-10"
+        />
+      </div>
       
       <AnimatePresence>
         {isOpen && locations.length > 0 && (
@@ -73,7 +77,7 @@ export function LocationSearch({ onLocationSelect }: LocationSearchProps) {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute z-50 w-full mt-1 bg-black/90 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg overflow-hidden max-h-64"
+            className="absolute z-50 w-full mt-1 bg-white dark:bg-black/90 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-lg shadow-lg overflow-hidden max-h-64"
           >
             {locations.map((location) => (
               <button
@@ -86,7 +90,7 @@ export function LocationSearch({ onLocationSelect }: LocationSearchProps) {
                   setValue(location.place_name)
                   setIsOpen(false)
                 }}
-                className="w-full px-4 py-3 text-left hover:bg-white/5 flex items-center space-x-3 text-white"
+                className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5 flex items-center space-x-3 text-gray-900 dark:text-white"
               >
                 <MapPin className="h-4 w-4 text-[#FFA600]" />
                 <span className="text-sm truncate">{location.place_name}</span>

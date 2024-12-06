@@ -28,16 +28,14 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
   // SVG viewBox dimensions
   const size = 600
   const center = size / 2
-  const outerRadius = size * 0.45 // Increased for outer zodiac ring
-  const zodiacRadius = outerRadius * 0.9
+  const outerRadius = size * 0.4 // Reduced from 0.45
+  const zodiacRadius = outerRadius * 0.95 // Increased from 0.9 for tighter spacing
   const middleRadius = zodiacRadius * 0.85
-  const innerRadius = middleRadius * 0.7
-  const planetRadius = innerRadius * 0.75
+  const innerRadius = middleRadius * 0.75 // Adjusted for better proportions
+  const planetRadius = innerRadius * 0.8
 
-  // Helper functions
+  // Helper functions remain the same
   const toRadians = (degrees: number) => (degrees * Math.PI) / 180
-  const toDegrees = (radians: number) => (radians * 180) / Math.PI
-
   const getPointOnCircle = (centerX: number, centerY: number, radius: number, degrees: number) => {
     const radians = toRadians(degrees - 90)
     return {
@@ -61,7 +59,7 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
       const start = getPointOnCircle(center, center, outerRadius, startAngle)
       const end = getPointOnCircle(center, center, outerRadius, endAngle)
       const midAngle = startAngle + 15
-      const labelPos = getPointOnCircle(center, center, outerRadius + 20, midAngle)
+      const labelPos = getPointOnCircle(center, center, outerRadius + 15, midAngle)
       
       const path = [
         `M ${center} ${center}`,
@@ -74,18 +72,14 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
         <g key={sign} className="cursor-pointer">
           <path
             d={path}
-            fill="#1a1a1a"
-            stroke="white"
-            strokeWidth="1"
-            className="opacity-80"
+            className="fill-black/5 dark:fill-black/90 stroke-white/10 dark:stroke-white/20"
           />
           <text
             x={labelPos.x}
             y={labelPos.y}
             textAnchor="middle"
             dominantBaseline="middle"
-            fill="white"
-            fontSize="12"
+            className="fill-gray-600 dark:fill-white text-[10px] font-medium"
             transform={`rotate(${midAngle}, ${labelPos.x}, ${labelPos.y})`}
           >
             {sign}
@@ -108,10 +102,9 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
             y1={start.y}
             x2={end.x}
             y2={end.y}
-            stroke="white"
+            className="stroke-white/20 dark:stroke-white/30"
             strokeWidth="1"
             strokeDasharray="4,4"
-            className="opacity-30"
           />
         </g>
       )
@@ -121,10 +114,10 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
   // Generate aspect lines with updated colors
   const generateAspectLines = () => {
     const aspectTypes = {
-      trine: { angle: 120, color: "#4CAF50", pattern: "none" },    // Green
-      square: { angle: 90, color: "#FF4D4D", pattern: "none" },    // Red
-      sextile: { angle: 60, color: "#2196F3", pattern: "4,4" },    // Blue
-      opposition: { angle: 180, color: "#FF4D4D", pattern: "none" } // Red
+      trine: { angle: 120, color: "#4CAF50", pattern: "none" },
+      square: { angle: 90, color: "#FF4D4D", pattern: "none" },
+      sextile: { angle: 60, color: "#2196F3", pattern: "4,4" },
+      opposition: { angle: 180, color: "#FF4D4D", pattern: "none" }
     }
 
     const aspectLines: JSX.Element[] = []
@@ -151,7 +144,7 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
               stroke={config.color}
               strokeWidth="1"
               strokeDasharray={config.pattern}
-              className="opacity-50"
+              className="opacity-40"
             />
           )
         }
@@ -192,16 +185,12 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
         >
           <circle
             r="10"
-            fill="black"
-            stroke="white"
-            strokeWidth="1"
-            className="opacity-80"
+            className="fill-black/5 dark:fill-black/80 stroke-white/20 dark:stroke-white/40"
           />
           <text
             textAnchor="middle"
             dominantBaseline="middle"
-            fill="white"
-            fontSize="12"
+            className="fill-gray-700 dark:fill-white text-xs font-medium"
           >
             {planetSymbols[planet.name] || planet.name.charAt(0)}
           </text>
@@ -216,13 +205,22 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
         viewBox={`0 0 ${size} ${size}`}
         className="w-full h-full"
       >
-        {/* Background */}
+        {/* Background with gradient */}
+        <defs>
+          <radialGradient id="wheelGradient" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" className="stop-white/5 dark:stop-black/90" />
+            <stop offset="100%" className="stop-white/10 dark:stop-black/95" />
+          </radialGradient>
+        </defs>
+
+        {/* Main circle background */}
         <circle
           cx={center}
           cy={center}
-          r={outerRadius + 40}
-          fill="black"
-          className="opacity-90"
+          r={outerRadius + 30}
+          fill="url(#wheelGradient)"
+          className="stroke-white/10 dark:stroke-white/20"
+          strokeWidth="1"
         />
 
         {/* Zodiac ring */}
@@ -234,27 +232,24 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
           cy={center}
           r={zodiacRadius}
           fill="none"
-          stroke="white"
+          className="stroke-white/20 dark:stroke-white/40"
           strokeWidth="1"
-          className="opacity-70"
         />
         <circle
           cx={center}
           cy={center}
           r={middleRadius}
           fill="none"
-          stroke="white"
+          className="stroke-white/15 dark:stroke-white/30"
           strokeWidth="1"
-          className="opacity-50"
         />
         <circle
           cx={center}
           cy={center}
           r={innerRadius}
           fill="none"
-          stroke="white"
+          className="stroke-white/10 dark:stroke-white/20"
           strokeWidth="1"
-          className="opacity-30"
         />
 
         {/* House lines */}

@@ -11,7 +11,8 @@ import { PatternsSection } from './patterns-section'
 import { PersonalitySnapshot } from './personality-snapshot'
 import { CompatibilitySection } from './compatibility-section'
 import { TransitEffects } from './transit-effects'
-import type { BirthChartData, Planet, House, Pattern } from '@/lib/types/birth-chart'
+import { WelcomeMessage } from './welcome-message'
+import type { BirthChartData, Planet, House, Pattern, Aspect } from '@/lib/types/birth-chart'
 
 // Sample data for testing
 const sampleData: BirthChartData = {
@@ -45,7 +46,13 @@ const sampleData: BirthChartData = {
     { number: 11, sign: "Cancer", degree: "25°", startDegree: 300, containingPlanets: ["North Node"] },
     { number: 12, sign: "Leo", degree: "26°", startDegree: 330, containingPlanets: ["Venus"] }
   ] as House[],
-  aspects: [],
+  aspects: [
+    { planet1: "Sun", planet2: "Moon", aspect: "conjunction", angle: 0, orb: 2, nature: "neutral" },
+    { planet1: "Sun", planet2: "Saturn", aspect: "trine", angle: 120, orb: 3, nature: "harmonious" },
+    { planet1: "Moon", planet2: "Venus", aspect: "square", angle: 90, orb: 4, nature: "challenging" },
+    { planet1: "Mars", planet2: "Jupiter", aspect: "sextile", angle: 60, orb: 2, nature: "harmonious" },
+    { planet1: "Venus", planet2: "Saturn", aspect: "opposition", angle: 180, orb: 1, nature: "challenging" }
+  ] as Aspect[],
   patterns: [
     {
       name: "Stellium",
@@ -95,7 +102,7 @@ export function BirthChartResult() {
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-200">
       <div className="max-w-7xl mx-auto px-4 py-4">
         {/* Header */}
-        <div className="mb-4">
+        <div className="mb-8">
           <motion.h1 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -120,6 +127,16 @@ export function BirthChartResult() {
             {sampleData.date} at {sampleData.time}
           </motion.p>
         </div>
+
+        {/* Welcome Message */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-8"
+        >
+          <WelcomeMessage name={sampleData.name} data={sampleData} />
+        </motion.div>
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -188,8 +205,8 @@ export function BirthChartResult() {
                       transitPlanet: "Jupiter",
                       natalPlanet: "Venus",
                       type: "trine",
-                      degree: "120°",
-                      orb: "2",
+                      degree: 120,
+                      orb: 2,
                       applying: true
                     }
                   ],

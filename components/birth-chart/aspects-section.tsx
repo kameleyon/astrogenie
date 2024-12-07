@@ -2,14 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-
-interface Aspect {
-  planet1: string
-  planet2: string
-  type: string
-  degree: string
-  orb?: string
-}
+import { Aspect } from '@/lib/types/birth-chart'
 
 interface AspectsSectionProps {
   aspects: Aspect[]
@@ -17,39 +10,39 @@ interface AspectsSectionProps {
 
 export function AspectsSection({ aspects }: AspectsSectionProps) {
   const majorAspects = [
-    { symbol: "□", aspect: "North Node Square Chiron", orb: "0°" },
-    { symbol: "△", aspect: "Pluto Trine MC", orb: "0°" },
-    { symbol: "⚹", aspect: "Neptune Sextile Pluto", orb: "1°" },
-    { symbol: "⚹", aspect: "Uranus Sextile Ascendant", orb: "1°" },
-    { symbol: "⚹", aspect: "Mars Sextile Jupiter", orb: "1°" },
-    { symbol: "⚹", aspect: "Sun Sextile North Node", orb: "2°" },
-    { symbol: "□", aspect: "Neptune Square Ascendant", orb: "2°" },
-    { symbol: "☍", aspect: "Neptune Opposition MC", orb: "2°" },
-    { symbol: "☌", aspect: "Moon Conjunction Saturn", orb: "2°" },
-    { symbol: "⚹", aspect: "Jupiter Sextile Uranus", orb: "3°" },
-    { symbol: "△", aspect: "Neptune Trine North Node", orb: "3°" },
-    { symbol: "⚹", aspect: "North Node Sextile MC", orb: "4°" },
-    { symbol: "⚹", aspect: "Pluto Sextile North Node", orb: "4°" },
-    { symbol: "☌", aspect: "Jupiter Conjunction Ascendant", orb: "4°" },
-    { symbol: "☌", aspect: "Jupiter Conjunction Saturn", orb: "6°" },
-    { symbol: "☌", aspect: "Sun Conjunction Pluto", orb: "8°" }
+    { symbol: "□", aspect: "North Node Square Chiron", orb: 0 },
+    { symbol: "△", aspect: "Pluto Trine MC", orb: 0 },
+    { symbol: "⚹", aspect: "Neptune Sextile Pluto", orb: 1 },
+    { symbol: "⚹", aspect: "Uranus Sextile Ascendant", orb: 1 },
+    { symbol: "⚹", aspect: "Mars Sextile Jupiter", orb: 1 },
+    { symbol: "⚹", aspect: "Sun Sextile North Node", orb: 2 },
+    { symbol: "□", aspect: "Neptune Square Ascendant", orb: 2 },
+    { symbol: "☍", aspect: "Neptune Opposition MC", orb: 2 },
+    { symbol: "☌", aspect: "Moon Conjunction Saturn", orb: 2 },
+    { symbol: "⚹", aspect: "Jupiter Sextile Uranus", orb: 3 },
+    { symbol: "△", aspect: "Neptune Trine North Node", orb: 3 },
+    { symbol: "⚹", aspect: "North Node Sextile MC", orb: 4 },
+    { symbol: "⚹", aspect: "Pluto Sextile North Node", orb: 4 },
+    { symbol: "☌", aspect: "Jupiter Conjunction Ascendant", orb: 4 },
+    { symbol: "☌", aspect: "Jupiter Conjunction Saturn", orb: 6 },
+    { symbol: "☌", aspect: "Sun Conjunction Pluto", orb: 8 }
   ]
 
   const minorAspects = [
-    { symbol: "⚼", aspect: "Saturn Sesquiquadrate Chiron", orb: "0°" },
-    { symbol: "∠", aspect: "Saturn Octile North Node", orb: "0°" },
-    { symbol: "⚸", aspect: "Saturn Septile Uranus", orb: "0°" },
-    { symbol: "⚸", aspect: "Venus Quintile MC", orb: "0°" },
-    { symbol: "⚺", aspect: "Venus Semi-sextile Saturn", orb: "1°" },
-    { symbol: "⚺", aspect: "Moon Semi-sextile Venus", orb: "1°" },
-    { symbol: "⚼", aspect: "Moon Sesquiquadrate Chiron", orb: "2°" },
-    { symbol: "⚻", aspect: "Uranus Quincunx MC", orb: "2°" },
-    { symbol: "∠", aspect: "Sun Octile Mars", orb: "2°" },
-    { symbol: "⚼", aspect: "Moon Sesquiquadrate Chiron", orb: "2°" },
-    { symbol: "∠", aspect: "Moon Octile Venus", orb: "2°" },
-    { symbol: "⚸", aspect: "Sun Quintile Mars", orb: "3°" },
-    { symbol: "∠", aspect: "Venus Octile Pluto", orb: "3°" },
-    { symbol: "⚺", aspect: "Chiron Semi-sextile MC", orb: "4°" }
+    { symbol: "⚼", aspect: "Saturn Sesquiquadrate Chiron", orb: 0 },
+    { symbol: "∠", aspect: "Saturn Octile North Node", orb: 0 },
+    { symbol: "⚸", aspect: "Saturn Septile Uranus", orb: 0 },
+    { symbol: "⚸", aspect: "Venus Quintile MC", orb: 0 },
+    { symbol: "⚺", aspect: "Venus Semi-sextile Saturn", orb: 1 },
+    { symbol: "⚺", aspect: "Moon Semi-sextile Venus", orb: 1 },
+    { symbol: "⚼", aspect: "Moon Sesquiquadrate Chiron", orb: 2 },
+    { symbol: "⚻", aspect: "Uranus Quincunx MC", orb: 2 },
+    { symbol: "∠", aspect: "Sun Octile Mars", orb: 2 },
+    { symbol: "⚼", aspect: "Moon Sesquiquadrate Chiron", orb: 2 },
+    { symbol: "∠", aspect: "Moon Octile Venus", orb: 2 },
+    { symbol: "⚸", aspect: "Sun Quintile Mars", orb: 3 },
+    { symbol: "∠", aspect: "Venus Octile Pluto", orb: 3 },
+    { symbol: "⚺", aspect: "Chiron Semi-sextile MC", orb: 4 }
   ]
 
   const renderAspectColumns = (aspects: typeof majorAspects) => {
@@ -65,7 +58,7 @@ export function AspectsSection({ aspects }: AspectsSectionProps) {
             <div key={index} className="flex items-center space-x-2">
               <span className="text-lg leading-none">{aspect.symbol}</span>
               <span className="text-sm">{aspect.aspect}</span>
-              <span className="text-xs text-gray-500">orb: {aspect.orb}</span>
+              <span className="text-xs text-gray-500">orb: {aspect.orb}°</span>
             </div>
           ))}
         </div>
@@ -76,7 +69,7 @@ export function AspectsSection({ aspects }: AspectsSectionProps) {
             <div key={index} className="flex items-center space-x-2">
               <span className="text-lg leading-none">{aspect.symbol}</span>
               <span className="text-sm">{aspect.aspect}</span>
-              <span className="text-xs text-gray-500">orb: {aspect.orb}</span>
+              <span className="text-xs text-gray-500">orb: {aspect.orb}°</span>
             </div>
           ))}
         </div>

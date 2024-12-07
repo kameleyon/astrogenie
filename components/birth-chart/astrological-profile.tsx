@@ -10,24 +10,30 @@ interface AstrologicalProfileProps {
 }
 
 export function AstrologicalProfile({ data }: AstrologicalProfileProps) {
+  // Extract sun, moon signs from planets array
+  const sunSign = data.planets.find(p => p.name === "Sun")?.sign
+  const moonSign = data.planets.find(p => p.name === "Moon")?.sign
+  // Get ascendant from first house
+  const ascendant = data.houses[0]?.sign
+
   const profiles = [
     {
       title: "Sun Sign",
-      sign: data.sunSign,
+      sign: sunSign,
       icon: Sun,
       description: "Your core essence and personality",
       gradient: "from-orange-500 to-yellow-500",
     },
     {
       title: "Moon Sign",
-      sign: data.moonSign,
+      sign: moonSign,
       icon: Moon,
       description: "Your emotional nature and inner self",
       gradient: "from-blue-500 to-purple-500",
     },
     {
       title: "Ascendant",
-      sign: data.ascendant,
+      sign: ascendant,
       icon: ArrowUp,
       description: "Your social personality and approach to life",
       gradient: "from-green-500 to-teal-500",

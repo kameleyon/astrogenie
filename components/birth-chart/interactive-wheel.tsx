@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ZodiacIcon, type ZodiacSign } from './zodiac-icon'
 
@@ -35,18 +35,18 @@ function Tooltip({ x, y, children }: TooltipProps) {
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
-      className="fixed z-50 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg text-sm"
+      className="fixed z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg text-sm"
       style={{
         left: isRightOverflow ? 'auto' : x,
         right: isRightOverflow ? window.innerWidth - x : 'auto',
         top: isTopOverflow ? y + 20 : y - 60,
-        transform: isTopOverflow ? 'none' : 'translateY(-100%)',
+        transform: isRightOverflow ? 'translateX(-100%)' : 'translateX(-50%)',
         maxWidth: '200px'
       }}
     >
       {children}
       <div 
-        className="absolute w-2 h-2 bg-white dark:bg-gray-900 rotate-45"
+        className="absolute w-2 h-2 bg-white/90 dark:bg-gray-900/90 rotate-45"
         style={{
           [isTopOverflow ? 'top' : 'bottom']: isTopOverflow ? '-8px' : '-4px',
           left: isRightOverflow ? 'auto' : '50%',
@@ -59,6 +59,7 @@ function Tooltip({ x, y, children }: TooltipProps) {
 }
 
 export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
+  const svgRef = useRef<SVGSVGElement>(null)
   const [selectedPlanet, setSelectedPlanet] = useState<string | null>(null)
   const [tooltipInfo, setTooltipInfo] = useState<{ x: number, y: number, content: React.ReactNode } | null>(null)
 
@@ -70,6 +71,24 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
   const middleRadius = zodiacRadius * 0.85
   const innerRadius = middleRadius * 0.75
   const planetRadius = innerRadius * 0.8
+
+  // Helper function to get screen coordinates
+  const getScreenCoordinates = (svgX: number, svgY: number) => {
+    if (!svgRef.current) return { x: 0, y: 0 }
+
+    const point = svgRef.current.createSVGPoint()
+    point.x = svgX
+    point.y = svgY
+
+    const screenCTM = svgRef.current.getScreenCTM()
+    if (!screenCTM) return { x: 0, y: 0 }
+
+    const screenPoint = point.matrixTransform(screenCTM)
+    return {
+      x: screenPoint.x,
+      y: screenPoint.y
+    }
+  }
 
   // Helper functions
   const toRadians = (degrees: number) => (degrees * Math.PI) / 180
@@ -172,16 +191,12 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
             className="stroke-white/10"
             strokeWidth="1"
             onMouseEnter={(e) => {
-              const rect = (e.target as SVGElement).getBoundingClientRect()
-              const svgRect = (e.target as SVGElement).ownerSVGElement?.getBoundingClientRect()
-              if (!svgRect) return
-              
-              const x = rect.left - svgRect.left + rect.width / 2
-              const y = rect.top - svgRect.top
+              const point = getPointOnCircle(center, center, outerRadius + 10, startAngle + 15)
+              const screenPoint = getScreenCoordinates(point.x, point.y)
               
               setTooltipInfo({
-                x,
-                y,
+                x: screenPoint.x,
+                y: screenPoint.y,
                 content: (
                   <div className="space-y-1">
                     <div className="font-medium">{sign.name}</div>
@@ -314,16 +329,11 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
           transform={`translate(${position.x}, ${position.y})`}
           className="cursor-pointer"
           onMouseEnter={(e) => {
-            const rect = (e.target as SVGElement).getBoundingClientRect()
-            const svgRect = (e.target as SVGElement).ownerSVGElement?.getBoundingClientRect()
-            if (!svgRect) return
-            
-            const x = rect.left - svgRect.left + rect.width / 2
-            const y = rect.top - svgRect.top
+            const screenPoint = getScreenCoordinates(position.x, position.y)
             
             setTooltipInfo({
-              x,
-              y,
+              x: screenPoint.x,
+              y: screenPoint.y,
               content: (
                 <div className="space-y-2">
                   <div className="font-medium">{planet.name}</div>
@@ -366,6 +376,7 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
   return (
     <div className="relative">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${size} ${size}`}
         className="w-full h-full"
       >

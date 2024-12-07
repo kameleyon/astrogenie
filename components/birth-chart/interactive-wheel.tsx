@@ -35,7 +35,7 @@ function Tooltip({ x, y, children }: TooltipProps) {
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
-      className="absolute z-50 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg text-sm"
+      className="fixed z-50 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-2 rounded-lg shadow-lg text-sm"
       style={{
         left: isRightOverflow ? 'auto' : x,
         right: isRightOverflow ? window.innerWidth - x : 'auto',
@@ -84,7 +84,7 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
 
   // Calculate actual degree for a planet
   const calculatePlanetDegree = (planet: typeof planets[0]) => {
-    const signDegree = {
+    const signDegree: Record<ZodiacSign, number> = {
       Aries: 0, Taurus: 30, Gemini: 60, Cancer: 90,
       Leo: 120, Virgo: 150, Libra: 180, Scorpio: 210,
       Sagittarius: 240, Capricorn: 270, Aquarius: 300, Pisces: 330
@@ -107,7 +107,7 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
       trine: { angle: 120, orb: 8, color: "#4CAF50", pattern: "none" },         // Green
       square: { angle: 90, orb: 8, color: "#FF4D4D", pattern: "none" },         // Red
       sextile: { angle: 60, orb: 6, color: "#2196F3", pattern: "4,4" }         // Blue
-    }
+    } as const
 
     // Find matching aspect
     for (const [type, config] of Object.entries(aspects)) {
@@ -121,28 +121,86 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
   // Generate zodiac ring segments
   const generateZodiacRing = () => {
     const zodiacSigns = [
-      "Aries", "Taurus", "Gemini", "Cancer",
-      "Leo", "Virgo", "Libra", "Scorpio",
-      "Sagittarius", "Capricorn", "Aquarius", "Pisces"
-    ]
+      { name: "Aries", element: "fire" },
+      { name: "Taurus", element: "earth" },
+      { name: "Gemini", element: "air" },
+      { name: "Cancer", element: "water" },
+      { name: "Leo", element: "fire" },
+      { name: "Virgo", element: "earth" },
+      { name: "Libra", element: "air" },
+      { name: "Scorpio", element: "water" },
+      { name: "Sagittarius", element: "fire" },
+      { name: "Capricorn", element: "earth" },
+      { name: "Aquarius", element: "air" },
+      { name: "Pisces", element: "water" }
+    ] as const
+
+    const elementColors = {
+      fire: "from-red-500/20 to-orange-500/20",
+      earth: "from-green-500/20 to-yellow-500/20",
+      air: "from-blue-500/20 to-indigo-500/20",
+      water: "from-blue-400/20 to-purple-500/20"
+    } as const
     
     return zodiacSigns.map((sign, index) => {
       const startAngle = index * 30
       const endAngle = (index + 1) * 30
-      const midAngle = startAngle + 15
-      const labelPos = getPointOnCircle(center, center, outerRadius + 15, midAngle)
       
+      const start = getPointOnCircle(center, center, outerRadius, startAngle)
+      const end = getPointOnCircle(center, center, outerRadius, endAngle)
+      const midAngle = startAngle + 15
+      const labelPos = getPointOnCircle(center, center, outerRadius + 20, midAngle)
+      
+      const path = [
+        `M ${center} ${center}`,
+        `L ${start.x} ${start.y}`,
+        `A ${outerRadius} ${outerRadius} 0 0 1 ${end.x} ${end.y}`,
+        'Z'
+      ].join(' ')
+
       return (
-        <g key={sign}>
+        <g key={sign.name} className="cursor-pointer">
+          <defs>
+            <radialGradient id={`gradient-${sign.name}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" className={`bg-gradient-to-r ${elementColors[sign.element]}`} />
+              <stop offset="100%" className="stop-black/90" />
+            </radialGradient>
+          </defs>
+          <path
+            d={path}
+            fill={`url(#gradient-${sign.name})`}
+            className="stroke-white/10"
+            strokeWidth="1"
+            onMouseEnter={(e) => {
+              const rect = (e.target as SVGElement).getBoundingClientRect()
+              const svgRect = (e.target as SVGElement).ownerSVGElement?.getBoundingClientRect()
+              if (!svgRect) return
+              
+              const x = rect.left - svgRect.left + rect.width / 2
+              const y = rect.top - svgRect.top
+              
+              setTooltipInfo({
+                x,
+                y,
+                content: (
+                  <div className="space-y-1">
+                    <div className="font-medium">{sign.name}</div>
+                    <div className="text-sm text-gray-500">{sign.element} sign</div>
+                  </div>
+                )
+              })
+            }}
+            onMouseLeave={() => setTooltipInfo(null)}
+          />
           <text
             x={labelPos.x}
             y={labelPos.y}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="fill-gray-600 dark:fill-white text-[10px] font-medium"
+            className="fill-gray-400 text-[10px] font-medium"
             transform={`rotate(${midAngle}, ${labelPos.x}, ${labelPos.y})`}
           >
-            {sign}
+            {sign.name}
           </text>
         </g>
       )
@@ -234,6 +292,22 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
       const degree = calculatePlanetDegree(planet)
       const position = getPointOnCircle(center, center, planetRadius, degree)
 
+      // Find aspects for this planet
+      const planetAspects = planets
+        .filter(p => p.name !== planet.name)
+        .map(p2 => {
+          const aspect = calculateAspect(planet, p2)
+          if (aspect) {
+            return {
+              planet: p2.name,
+              type: aspect.type,
+              orb: Math.abs(calculatePlanetDegree(planet) - calculatePlanetDegree(p2))
+            }
+          }
+          return null
+        })
+        .filter((aspect): aspect is NonNullable<typeof aspect> => aspect !== null)
+
       return (
         <g
           key={planet.name}
@@ -241,14 +315,30 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
           className="cursor-pointer"
           onMouseEnter={(e) => {
             const rect = (e.target as SVGElement).getBoundingClientRect()
+            const svgRect = (e.target as SVGElement).ownerSVGElement?.getBoundingClientRect()
+            if (!svgRect) return
+            
+            const x = rect.left - svgRect.left + rect.width / 2
+            const y = rect.top - svgRect.top
+            
             setTooltipInfo({
-              x: rect.left + rect.width / 2,
-              y: rect.top,
+              x,
+              y,
               content: (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <div className="font-medium">{planet.name}</div>
                   <div>{planet.degree} {planet.sign}</div>
                   <div className="text-gray-500">House {planet.house}</div>
+                  {planetAspects.length > 0 && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                      <div className="text-xs font-medium mb-1">Aspects:</div>
+                      {planetAspects.map((aspect, i) => (
+                        <div key={i} className="text-xs text-gray-500">
+                          {aspect.type} with {aspect.planet}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })
@@ -257,13 +347,14 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
           onClick={() => setSelectedPlanet(planet.name)}
         >
           <circle
-            r="10"
-            className="fill-black/5 dark:fill-black/80 stroke-white/20 dark:stroke-white/40"
+            r="12"
+            className="fill-black/80 stroke-white/40"
+            strokeWidth="1"
           />
           <text
             textAnchor="middle"
             dominantBaseline="middle"
-            className="fill-gray-700 dark:fill-white text-xs font-medium"
+            className="fill-white text-sm font-medium"
           >
             {planetSymbols[planet.name] || planet.name.charAt(0)}
           </text>
@@ -279,13 +370,24 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
         className="w-full h-full"
       >
         {/* Background */}
+        <defs>
+          <radialGradient id="wheelBackground" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" className="stop-black/80" />
+            <stop offset="100%" className="stop-black/95" />
+          </radialGradient>
+        </defs>
+
         <circle
           cx={center}
           cy={center}
           r={outerRadius + 30}
-          className="fill-black/90 stroke-white/10"
+          fill="url(#wheelBackground)"
+          className="stroke-white/10"
           strokeWidth="1"
         />
+
+        {/* Zodiac ring */}
+        {generateZodiacRing()}
 
         {/* Circles */}
         <circle
@@ -293,7 +395,7 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
           cy={center}
           r={zodiacRadius}
           fill="none"
-          className="stroke-white/20 dark:stroke-white/40"
+          className="stroke-white/20"
           strokeWidth="1"
         />
         <circle
@@ -301,7 +403,7 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
           cy={center}
           r={middleRadius}
           fill="none"
-          className="stroke-white/15 dark:stroke-white/30"
+          className="stroke-white/15"
           strokeWidth="1"
         />
         <circle
@@ -309,7 +411,7 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
           cy={center}
           r={innerRadius}
           fill="none"
-          className="stroke-white/10 dark:stroke-white/20"
+          className="stroke-white/10"
           strokeWidth="1"
         />
 
@@ -318,9 +420,6 @@ export function InteractiveWheel({ houses, planets }: InteractiveWheelProps) {
 
         {/* Aspect lines */}
         {generateAspectLines()}
-
-        {/* Zodiac signs */}
-        {generateZodiacRing()}
 
         {/* Planets */}
         {generatePlanets()}

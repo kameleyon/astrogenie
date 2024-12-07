@@ -1,6 +1,7 @@
 import * as swisseph from 'swisseph'
 import { HousePosition, GeoPosition } from './types'
-import { getZodiacSign } from './planets'
+import { getZodiacSign, PlanetName } from './planets'
+import { generateHouseInterpretation } from '../openrouter'
 
 // Map our house system codes to Swiss Ephemeris constants
 const HOUSE_SYSTEM_MAP = {
@@ -228,6 +229,113 @@ export function isCadentHouse(house: number): boolean {
 }
 
 /**
+ * Calculate house strength based on multiple factors
+ */
+export function calculateHouseStrength(
+  house: number,
+  planets: Record<PlanetName, { longitude: number }>,
+  cusps: Record<number, HousePosition>
+): number {
+  let strength = 0
+
+  // Base strength by house type
+  if (isAngularHouse(house)) strength += 5
+  else if (isSuccedentHouse(house)) strength += 3
+  else if (isCadentHouse(house)) strength += 1
+
+  // Add strength for planets in the house
+  const occupants = Object.entries(planets).filter(([_, pos]) => 
+    getHousePosition(pos.longitude, cusps) === house
+  )
+
+  // Weight by planet type
+  occupants.forEach(([planet]) => {
+    switch (planet) {
+      case 'Sun':
+      case 'Moon':
+        strength += 5
+        break
+      case 'Jupiter':
+      case 'Venus':
+        strength += 4
+        break
+      case 'Mercury':
+      case 'Mars':
+        strength += 3
+        break
+      case 'Saturn':
+        strength += 2
+        break
+      default:
+        strength += 1
+    }
+  })
+
+  return strength
+}
+
+/**
+ * Calculate house dignity based on ruler position
+ */
+export function calculateHouseDignity(
+  house: number,
+  planets: Record<PlanetName, { longitude: number }>,
+  cusps: Record<number, HousePosition>
+): number {
+  const ruler = getNaturalHouseRuler(house)
+  if (!ruler || !planets[ruler as PlanetName]) return 0
+
+  const rulerPos = planets[ruler as PlanetName].longitude
+  const rulerHouse = getHousePosition(rulerPos, cusps)
+
+  // Calculate dignity based on ruler's house position
+  if (rulerHouse === house) return 5 // Ruler in its own house
+  if (isHarmoniousHouse(house, rulerHouse)) return 3 // Ruler in harmonious house
+  if (isInimicalHouse(house, rulerHouse)) return -2 // Ruler in inimical house
+
+  return 0
+}
+
+/**
+ * Check if two houses are harmonious (trine or sextile)
+ */
+function isHarmoniousHouse(house1: number, house2: number): boolean {
+  const trine = [
+    [1, 5, 9],
+    [2, 6, 10],
+    [3, 7, 11],
+    [4, 8, 12]
+  ]
+  const sextile = [
+    [1, 3, 5],
+    [2, 4, 6],
+    [7, 9, 11],
+    [8, 10, 12]
+  ]
+
+  return trine.some(group => group.includes(house1) && group.includes(house2)) ||
+         sextile.some(group => group.includes(house1) && group.includes(house2))
+}
+
+/**
+ * Check if two houses are inimical (square or opposition)
+ */
+function isInimicalHouse(house1: number, house2: number): boolean {
+  const square = [
+    [1, 4, 7, 10],
+    [2, 5, 8, 11],
+    [3, 6, 9, 12]
+  ]
+  const opposition = [
+    [1, 7], [2, 8], [3, 9],
+    [4, 10], [5, 11], [6, 12]
+  ]
+
+  return square.some(group => group.includes(house1) && group.includes(house2)) ||
+         opposition.some(pair => pair.includes(house1) && pair.includes(house2))
+}
+
+/**
  * Get the natural ruling sign of a house
  */
 export function getNaturalHouseSign(house: number): string {
@@ -275,4 +383,54 @@ export function getHouseQuality(house: number): string {
   if (isAngularHouse(house)) return "Cardinal"
   if (isSuccedentHouse(house)) return "Fixed"
   return "Mutable"
+}
+
+export interface HouseInterpretation {
+  basicMeaning: string
+  strength: string
+  dignity: string
+  element: string
+  quality: string
+  ruler: string
+  occupants: string
+  interpretation: string
+}
+
+/**
+ * Get detailed house interpretation
+ */
+export async function getHouseInterpretation(
+  house: number,
+  planets: Record<PlanetName, { longitude: number }>,
+  cusps: Record<number, HousePosition>
+): Promise<HouseInterpretation> {
+  const strength = calculateHouseStrength(house, planets, cusps)
+  const dignity = calculateHouseDignity(house, planets, cusps)
+  const element = getHouseElement(house)
+  const quality = getHouseQuality(house)
+  const ruler = getNaturalHouseRuler(house)
+  
+  const occupants = Object.entries(planets)
+    .filter(([_, pos]) => getHousePosition(pos.longitude, cusps) === house)
+    .map(([planet]) => planet)
+
+  // Generate interpretation using OpenRouter
+  const interpretation = await generateHouseInterpretation(
+    house,
+    element,
+    quality,
+    ruler,
+    occupants
+  )
+
+  return {
+    basicMeaning: `House ${house}`,
+    strength: `House strength: ${strength}/10`,
+    dignity: `House dignity: ${dignity}/5`,
+    element: `Element: ${element}`,
+    quality: `Quality: ${quality}`,
+    ruler: `Ruler: ${ruler}`,
+    occupants: occupants.length > 0 ? `Occupied by: ${occupants.join(', ')}` : 'Empty house',
+    interpretation
+  }
 }

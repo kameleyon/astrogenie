@@ -18,27 +18,7 @@ logging.basicConfig(level=logging.DEBUG)
 tf = TimezoneFinder()
 
 
-#def calculate_sun_sign(birth_date):
-    # This is a simplified version. For accurate calculations, you'd need to use ephemeris data.
-    #zodiac_signs = [
-        #"Capricorn", "Aquarius", "Pisces", "Aries", "Taurus", "Gemini",
-        #"Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius"
-    #]
-    #month = birth_date.month
-    #day = birth_date.day
 
-    #if (month == 1 and day >= 20) or (month == 2 and day <= 18):
-        #return zodiac_signs[1]
-    #elif (month == 2 and day >= 19) or (month == 3 and day <= 20):
-        #return zodiac_signs[2]
-    # ... continue for all zodiac signs
-    #else:
-        #return zodiac_signs[0]
-
-#import swisseph as swe
-
-#import logging
-#logging.basicConfig(level=logging.DEBUG)
 
 def get_timezone(latitude, longitude):
     timezone_str = tf.certain_timezone_at(lat=latitude, lng=longitude)

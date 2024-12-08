@@ -1,206 +1,175 @@
-import { DateTime, GeoPosition, BirthChartCalculation } from './types'
+import { BirthChartData, Planet, House, Aspect, ZodiacSign } from '@/lib/types/birth-chart'
 import { calculateJulianDay } from './julian-date'
-import { calculatePlanetPositions, PlanetName, PLANET_INDICES } from './planets'
-import { calculateHouseCusps, HouseSystem } from './houses'
+import { calculatePlanetPositions, getZodiacSign } from './planets'
+import { calculateHouseCusps, getHousePosition } from './houses'
 import { calculateAspects } from './aspects'
+import { DateTime, GeoPosition } from './types'
 
-interface CalculationOptions {
-  houseSystem?: HouseSystem
-  includeMinorAspects?: boolean
-  calculateMidpoints?: boolean
-}
-
-const DEFAULT_OPTIONS: CalculationOptions = {
-  houseSystem: 'P',
-  includeMinorAspects: false,
-  calculateMidpoints: false
+interface BirthChartInput {
+  name: string
+  date: string
+  time: string
+  location: string
+  latitude: number
+  longitude: number
 }
 
 /**
- * Main calculator class for birth chart calculations
+ * Parse date string to year, month, day
  */
-export class AstroCalculator {
-  private julianDay: number
-  private geoPosition: GeoPosition
-  private options: CalculationOptions
+function parseDate(dateStr: string): { year: number; month: number; day: number } {
+  try {
+    // Handle both MM/DD/YYYY and YYYY-MM-DD formats
+    const parts = dateStr.includes('/') 
+      ? dateStr.split('/').map(Number)  // MM/DD/YYYY
+      : dateStr.split('-').map(Number)  // YYYY-MM-DD
 
-  constructor(
-    dateTime: DateTime,
-    geoPosition: GeoPosition,
-    options: Partial<CalculationOptions> = {}
-  ) {
-    this.julianDay = calculateJulianDay(dateTime, geoPosition)
-    this.geoPosition = geoPosition
-    this.options = { ...DEFAULT_OPTIONS, ...options }
-  }
-
-  /**
-   * Calculate the complete birth chart
-   */
-  async calculateBirthChart(): Promise<BirthChartCalculation> {
-    try {
-      // Calculate planet positions
-      const planets = await calculatePlanetPositions(this.julianDay)
-
-      // Calculate house cusps
-      const { cusps, ascendant, midheaven } = await calculateHouseCusps(
-        this.julianDay,
-        this.geoPosition,
-        this.options.houseSystem
-      )
-
-      // Calculate aspects
-      const aspects = calculateAspects(planets, this.options.includeMinorAspects)
-
-      // Calculate midpoints if requested
-      const midpoints = this.options.calculateMidpoints 
-        ? this.calculateMidpoints(planets)
-        : undefined
-
-      return {
-        planets,
-        houses: cusps,
-        aspects,
-        ascendant,
-        midheaven,
-        midpoints
+    if (dateStr.includes('/')) {
+      // MM/DD/YYYY format
+      const [month, day, year] = parts
+      if (!isValidDate(year, month, day)) {
+        throw new Error('Invalid date')
       }
-    } catch (error) {
-      console.error('Error calculating birth chart:', error)
-      throw new Error('Failed to calculate birth chart')
+      return { year, month, day }
+    } else {
+      // YYYY-MM-DD format
+      const [year, month, day] = parts
+      if (!isValidDate(year, month, day)) {
+        throw new Error('Invalid date')
+      }
+      return { year, month, day }
     }
+  } catch (error) {
+    throw new Error('Invalid date format. Use MM/DD/YYYY or YYYY-MM-DD')
   }
+}
 
-  /**
-   * Calculate midpoints between planets
-   */
-  private calculateMidpoints(
-    planets: Record<PlanetName, { longitude: number }>
-  ): Record<string, number> {
-    const midpoints: Record<string, number> = {}
-    const planetNames = Object.keys(planets) as PlanetName[]
+/**
+ * Validate date components
+ */
+function isValidDate(year: number, month: number, day: number): boolean {
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return false
+  if (month < 1 || month > 12) return false
+  if (day < 1 || day > 31) return false
+  
+  // Check days in month
+  const daysInMonth = new Date(year, month, 0).getDate()
+  if (day > daysInMonth) return false
 
-    for (let i = 0; i < planetNames.length; i++) {
-      for (let j = i + 1; j < planetNames.length; j++) {
-        const planet1 = planetNames[i]
-        const planet2 = planetNames[j]
-        
-        let long1 = planets[planet1].longitude
-        let long2 = planets[planet2].longitude
+  return true
+}
 
-        // Ensure proper calculation across 0°/360° boundary
-        if (Math.abs(long1 - long2) > 180) {
-          if (long1 < long2) long1 += 360
-          else long2 += 360
-        }
-
-        let midpoint = (long1 + long2) / 2
-        if (midpoint >= 360) midpoint -= 360
-
-        midpoints[`${planet1}_${planet2}`] = midpoint
-      }
+/**
+ * Parse time string to hour and minute
+ */
+function parseTime(timeStr: string): { hour: number; minute: number } {
+  try {
+    const [hour, minute] = timeStr.split(':').map(Number)
+    if (isNaN(hour) || isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+      throw new Error('Invalid time')
     }
-
-    return midpoints
+    return { hour, minute }
+  } catch (error) {
+    throw new Error('Invalid time format. Use HH:MM (24-hour format)')
   }
+}
 
-  /**
-   * Get Julian Day for the chart
-   */
-  getJulianDay(): number {
-    return this.julianDay
-  }
+/**
+ * Format degree with minutes
+ */
+function formatDegree(decimal: number): string {
+  const degrees = Math.floor(decimal)
+  const minutes = Math.floor((decimal - degrees) * 60)
+  return `${degrees}° ${minutes}'`
+}
 
-  /**
-   * Update calculation options
-   */
-  updateOptions(newOptions: Partial<CalculationOptions>): void {
-    this.options = { ...this.options, ...newOptions }
-  }
-
-  /**
-   * Static method to create calculator instance
-   */
-  static create(
-    dateTime: DateTime,
-    geoPosition: GeoPosition,
-    options?: Partial<CalculationOptions>
-  ): AstroCalculator {
-    return new AstroCalculator(dateTime, geoPosition, options)
-  }
-
-  /**
-   * Calculate current transits
-   */
-  async calculateTransits(): Promise<Record<PlanetName, { longitude: number; aspectsToNatal: any[] }>> {
-    const currentJd = new Date().getTime() / 86400000 + 2440587.5 // Current Julian Day
-    const transitPositions = await calculatePlanetPositions(currentJd)
-    const natalPositions = await calculatePlanetPositions(this.julianDay)
-
-    const transits: Record<PlanetName, { longitude: number; aspectsToNatal: any[] }> = {} as any
-
-    for (const transitPlanet of Object.keys(PLANET_INDICES) as PlanetName[]) {
-      const transitPos = transitPositions[transitPlanet]
-      const aspectsToNatal = []
-
-      for (const natalPlanet of Object.keys(PLANET_INDICES) as PlanetName[]) {
-        const natalPos = natalPositions[natalPlanet]
-        // Calculate aspects between transit and natal positions
-        const diff = Math.abs(transitPos.longitude - natalPos.longitude)
-        if (diff <= 10 || Math.abs(diff - 180) <= 10) { // Example: only conjunction and opposition
-          aspectsToNatal.push({
-            planet: natalPlanet,
-            aspect: diff <= 10 ? 'conjunction' : 'opposition',
-            orb: diff <= 10 ? diff : Math.abs(diff - 180)
-          })
-        }
-      }
-
-      transits[transitPlanet] = {
-        longitude: transitPos.longitude,
-        aspectsToNatal
-      }
+/**
+ * Calculate complete birth chart data
+ * Direct port of Python implementation
+ */
+export async function calculateBirthChart(input: BirthChartInput): Promise<BirthChartData> {
+  try {
+    // Validate input
+    if (!input.name?.trim()) throw new Error('Name is required')
+    if (!input.date) throw new Error('Birth date is required')
+    if (!input.time) throw new Error('Birth time is required')
+    if (!input.location) throw new Error('Birth location is required')
+    if (typeof input.latitude !== 'number' || typeof input.longitude !== 'number') {
+      throw new Error('Invalid coordinates')
+    }
+    if (input.latitude < -90 || input.latitude > 90) {
+      throw new Error('Latitude must be between -90 and 90 degrees')
+    }
+    if (input.longitude < -180 || input.longitude > 180) {
+      throw new Error('Longitude must be between -180 and 180 degrees')
     }
 
-    return transits
-  }
-
-  /**
-   * Calculate solar return
-   */
-  async calculateSolarReturn(year: number): Promise<number> {
-    const natalSun = (await calculatePlanetPositions(this.julianDay)).Sun.longitude
-    let jd = calculateJulianDay({
+    // Parse date and time
+    const { year, month, day } = parseDate(input.date)
+    const { hour, minute } = parseTime(input.time)
+    
+    const dateTime: DateTime = {
       year,
-      month: 1,
-      day: 1,
-      hour: 0,
-      minute: 0,
+      month,
+      day,
+      hour,
+      minute,
       second: 0
-    }, this.geoPosition)
-
-    // Iterate through the year to find when Sun returns to natal position
-    while (true) {
-      const sunPos = (await calculatePlanetPositions(jd)).Sun.longitude
-      const diff = Math.abs(sunPos - natalSun)
-      
-      if (diff < 0.0001) break // Found the return
-      
-      // Adjust JD based on difference
-      jd += (diff / 360) * 365.25
-      
-      if (jd > calculateJulianDay({
-        year: year + 1,
-        month: 1,
-        day: 1,
-        hour: 0,
-        minute: 0,
-        second: 0
-      }, this.geoPosition)) {
-        throw new Error('Solar return not found')
-      }
     }
 
-    return jd
+    const position: GeoPosition = {
+      latitude: input.latitude,
+      longitude: input.longitude
+    }
+
+    // Calculate Julian Date for the birth time
+    const julianDay = calculateJulianDay(dateTime, position)
+    console.debug(`Julian Day: ${julianDay}`)
+
+    // Calculate planet positions
+    const planetPositions = calculatePlanetPositions(julianDay)
+
+    // Calculate house cusps
+    const houseData = await calculateHouseCusps(julianDay, position)
+
+    // Convert planet positions to array format
+    const planets: Planet[] = Object.entries(planetPositions).map(([name, pos]) => ({
+      name: name as keyof typeof planetPositions,
+      sign: pos.sign as ZodiacSign,
+      degree: formatDegree(pos.longitude),
+      house: getHousePosition(pos.longitude, houseData.cusps),
+      retrograde: pos.retrograde || false
+    }))
+
+    // Convert house cusps to array format
+    const houses: House[] = Object.entries(houseData.cusps).map(([number, data]) => ({
+      number: parseInt(number),
+      sign: data.sign as ZodiacSign,
+      degree: formatDegree(data.cusp),
+      startDegree: data.cusp,
+      containingPlanets: planets
+        .filter(planet => planet.house === parseInt(number))
+        .map(planet => planet.name)
+    }))
+
+    // Calculate aspects between planets
+    const aspects = calculateAspects(planetPositions)
+
+    return {
+      name: input.name,
+      location: input.location,
+      date: input.date,
+      time: input.time,
+      planets,
+      houses,
+      aspects,
+      patterns: [], // Aspect patterns will be calculated separately
+      ascendant: houseData.ascendant,
+      midheaven: houseData.midheaven,
+      significantFeatures: [] // Features will be calculated separately
+    }
+  } catch (error) {
+    console.error('Error calculating birth chart:', error)
+    throw new Error(error instanceof Error ? error.message : 'Failed to calculate birth chart')
   }
 }

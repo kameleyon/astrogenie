@@ -1,11 +1,16 @@
 declare module 'swisseph' {
-  export function calc_ut(julianDay: number, planet: number, flags: number, callback: (data: number[], err: string | null) => void): void
+  export function calc_ut(
+    julianDay: number,
+    planet: number,
+    flags: number,
+    callback: (data: number[] | null, err: string | null) => void
+  ): void
   
   export function swe_houses(
     julianDay: number,
     latitude: number,
     longitude: number,
-    houseSystem: string,
+    hsys: string,
     callback: (result: { cusps: number[]; ascmc: number[] } | null, error: string | null) => void
   ): void
 
@@ -39,4 +44,25 @@ declare module 'swisseph' {
   export const SE_HSYS_POLICH_PAGE: string
   export const SE_HSYS_ALCABITIUS: string
   export const SE_HSYS_GAUQUELIN: string
+
+  // Calendar types
+  export const GREG_CAL: number
+  export const JUL_CAL: number
+
+  // Additional functions
+  export function swe_julday(
+    year: number,
+    month: number,
+    day: number,
+    hour: number,
+    calendar: number
+  ): number
+
+  export function swe_revjul(
+    julianDay: number,
+    calendar: number,
+    callback: (result: { year: number; month: number; day: number; hour: number } | null, error: string | null) => void
+  ): void
+
+  export function swe_set_ephe_path(path: string): void
 }

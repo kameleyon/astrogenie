@@ -1,5 +1,5 @@
 "use client"
-import './../globals.css'
+
 import { motion } from "framer-motion"
 import { BirthChartForm } from "@/components/birth-chart/birth-chart-form"
 import { AstrologicalSymbols } from "@/components/birth-chart/astrological-symbols"
@@ -7,8 +7,55 @@ import { BirthChartData } from "@/lib/types/birth-chart"
 import { BirthChartResult } from "@/components/birth-chart/birth-chart-result"
 import { useState } from "react"
 
+interface FormData {
+  name: string
+  date: string
+  time: string
+  location: string
+  latitude: number
+  longitude: number
+}
+
 export default function BirthChart() {
   const [birthChartData, setBirthChartData] = useState<BirthChartData | null>(null)
+
+  const handleFormSubmit = async (formData: FormData) => {
+    try {
+      // Call the API endpoint
+      const response = await fetch('/api/calculate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Handle API error response
+        if (data.error) {
+          if (data.details) {
+            // If there are detailed error messages, pass them along
+            throw new Error(JSON.stringify(data.details))
+          } else {
+            throw new Error(data.error)
+          }
+        } else {
+          throw new Error('Failed to calculate birth chart')
+        }
+      }
+
+      setBirthChartData(data)
+    } catch (error) {
+      console.error('Error calculating birth chart:', error)
+      throw error // Let the form handle the error
+    }
+  }
+
+  const handleBack = () => {
+    setBirthChartData(null)
+  }
 
   return (
     <>
@@ -33,7 +80,7 @@ export default function BirthChart() {
                   transition={{ delay: 0.1, duration: 1 }}
                   className="font-lato text-white/70 text-center text-sm md:text-base max-w-2xl mx-auto"
                 >
-                  Create your personalized birth chart for free by filling out the form. Discover our tools for interactive planets, asteroids, house systems, orbs, declinations, and more to suit your preferences.
+                  Create your personalized birth chart using precise astrological calculations. Discover your unique planetary positions, aspects, and cosmic patterns.
                 </motion.p>
               </div>
             </div>
@@ -43,14 +90,14 @@ export default function BirthChart() {
               <div className="w-full max-w-md px-4">
                 <h2 className="text-xl font-futura mb-4 text-center text-gray-900 dark:text-white">Fill out the form</h2>
                 <div className="text-gray-900 dark:text-white">
-                  <BirthChartForm onSubmit={setBirthChartData} />
+                  <BirthChartForm onSubmit={handleFormSubmit} />
                 </div>
               </div>
             </div>
           </div>
         </div>
       ) : (
-        <BirthChartResult />
+        <BirthChartResult data={birthChartData} onBack={handleBack} />
       )}
     </>
   )

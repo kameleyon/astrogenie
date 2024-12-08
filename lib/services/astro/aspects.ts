@@ -1,122 +1,50 @@
-import { AspectData, PlanetPosition, PlanetName, AspectType, AspectNature } from './types'
-import { generateAspectInterpretation, generateAspectPatternInterpretation } from '../openrouter'
+import { PlanetPosition } from './types'
+import { PlanetName } from '@/lib/types/birth-chart'
 
-export interface AspectDefinition {
+interface Aspect {
+  planet1: string
+  planet2: string
+  aspect: string
   angle: number
   orb: number
-  nature: AspectNature
 }
 
-export const MAJOR_ASPECTS: Record<AspectType, AspectDefinition> = {
-  conjunction: {
-    angle: 0,
-    orb: 10,
-    nature: 'neutral'
-  },
-  opposition: {
-    angle: 180,
-    orb: 10,
-    nature: 'challenging'
-  },
-  trine: {
-    angle: 120,
-    orb: 8,
-    nature: 'harmonious'
-  },
-  square: {
-    angle: 90,
-    orb: 8,
-    nature: 'challenging'
-  },
-  sextile: {
-    angle: 60,
-    orb: 6,
-    nature: 'harmonious'
-  },
-  quintile: {
-    angle: 72,
-    orb: 2,
-    nature: 'harmonious'
-  },
-  semisextile: {
-    angle: 30,
-    orb: 2,
-    nature: 'neutral'
-  },
-  quincunx: {
-    angle: 150,
-    orb: 3,
-    nature: 'challenging'
-  },
-  sesquiquadrate: {
-    angle: 135,
-    orb: 2,
-    nature: 'challenging'
-  },
-  semisquare: {
-    angle: 45,
-    orb: 2,
-    nature: 'challenging'
+/**
+ * Calculate aspects between planets
+ * Direct port of Python's calculate_aspects function
+ */
+export function calculateAspects(planetPositions: Record<PlanetName, PlanetPosition>): Aspect[] {
+  const aspects: Aspect[] = []
+  const aspectTypes: Record<number, [string, number]> = {
+    0: ["Conjunction", 10],
+    60: ["Sextile", 6],
+    90: ["Square", 10],
+    120: ["Trine", 10],
+    180: ["Opposition", 10]
   }
-}
-
-/**
- * Calculate the angular difference between two points on the zodiac
- */
-function calculateAngle(degree1: number, degree2: number): number {
-  const diff = Math.abs(degree1 - degree2)
-  return Math.min(diff, 360 - diff)
-}
-
-/**
- * Check if an angle forms a particular aspect within orb
- */
-function isAspect(angle: number, aspectAngle: number, orb: number): boolean {
-  return Math.abs(angle - aspectAngle) <= orb
-}
-
-/**
- * Calculate all aspects between planets
- */
-export function calculateAspects(
-  planetPositions: Record<PlanetName, PlanetPosition>,
-  includeMinorAspects: boolean = false
-): AspectData[] {
-  const aspects: AspectData[] = []
-  const aspectTypes = MAJOR_ASPECTS
 
   const planets = Object.keys(planetPositions) as PlanetName[]
-
   for (let i = 0; i < planets.length; i++) {
     for (let j = i + 1; j < planets.length; j++) {
       const planet1 = planets[i]
       const planet2 = planets[j]
-      const pos1 = planetPositions[planet1]
-      const pos2 = planetPositions[planet2]
+      
+      // Calculate angular separation
+      let angle = Math.abs(planetPositions[planet1].longitude - planetPositions[planet2].longitude)
+      angle = Math.min(angle, 360 - angle) // Consider the shorter arc
 
-      const angle = calculateAngle(pos1.longitude, pos2.longitude)
-
-      for (const [aspectName, aspectDef] of Object.entries(aspectTypes)) {
-        if (isAspect(angle, aspectDef.angle, aspectDef.orb)) {
-          const orb = Math.abs(angle - aspectDef.angle)
+      // Check each aspect type
+      for (const [aspectAngleStr, [aspectName, orb]] of Object.entries(aspectTypes)) {
+        const aspectAngle = Number(aspectAngleStr)
+        if (Math.abs(angle - aspectAngle) <= orb) {
           aspects.push({
             planet1,
             planet2,
-            aspect: aspectName as AspectType,
-            angle,
-            orb,
-            nature: aspectDef.nature,
-            strength: calculateAspectStrength({
-              planet1,
-              planet2,
-              aspect: aspectName as AspectType,
-              angle,
-              orb,
-              nature: aspectDef.nature
-            }),
-            applying: isApplyingAspect(pos1.longitudeSpeed, pos2.longitudeSpeed, angle, aspectDef.angle)
+            aspect: aspectName,
+            angle: Number(angle.toFixed(2)),
+            orb: Number(Math.abs(angle - aspectAngle).toFixed(2))
           })
-          break // Only record the tightest aspect between two planets
+          break // Only one aspect type per planet pair
         }
       }
     }
@@ -126,188 +54,69 @@ export function calculateAspects(
 }
 
 /**
- * Calculate aspect strength based on orb and aspect type
+ * Check if two planets are in a specific aspect
  */
-export function calculateAspectStrength(aspect: AspectData): number {
-  const aspectDef = MAJOR_ASPECTS[aspect.aspect]
-  if (!aspectDef) return 0
-
-  // Base strength based on aspect type
-  const baseStrength = {
-    conjunction: 10,
-    opposition: 9,
-    trine: 8,
-    square: 7,
-    sextile: 6,
-    quintile: 5,
-    semisextile: 4,
-    quincunx: 4,
-    sesquiquadrate: 3,
-    semisquare: 3
-  }[aspect.aspect] || 0
-
-  // Reduce strength based on orb
-  const orbFactor = 1 - (aspect.orb / aspectDef.orb)
-  return baseStrength * orbFactor
-}
-
-/**
- * Determine if an aspect is applying or separating
- */
-function isApplyingAspect(
-  speed1: number,
-  speed2: number,
-  currentAngle: number,
-  aspectAngle: number
+export function isInAspect(
+  planet1Long: number,
+  planet2Long: number,
+  aspectAngle: number,
+  orb: number = 10
 ): boolean {
-  const relativeSpeed = speed1 - speed2
-  const angleToAspect = Math.abs(currentAngle - aspectAngle)
-  
-  // If relative speed is positive, faster planet is catching up
-  return (relativeSpeed > 0 && angleToAspect > 0) ||
-         (relativeSpeed < 0 && angleToAspect < 0)
+  let angle = Math.abs(planet1Long - planet2Long)
+  angle = Math.min(angle, 360 - angle)
+  return Math.abs(angle - aspectAngle) <= orb
 }
 
 /**
- * Get all aspects involving a specific planet
+ * Get the nature of an aspect
  */
-export function getPlanetAspects(
-  planet: PlanetName,
-  aspects: AspectData[]
-): AspectData[] {
-  return aspects.filter(aspect => 
-    aspect.planet1 === planet || aspect.planet2 === planet
-  )
+export function getAspectNature(aspectAngle: number): 'harmonious' | 'challenging' | 'neutral' {
+  if (aspectAngle === 0) return 'neutral' // Conjunction
+  if (aspectAngle === 60 || aspectAngle === 120) return 'harmonious' // Sextile and Trine
+  if (aspectAngle === 90 || aspectAngle === 180) return 'challenging' // Square and Opposition
+  return 'neutral'
 }
 
 /**
- * Calculate the total aspect strength for a planet
+ * Calculate the exact orb between two planets for a given aspect
  */
-export function calculatePlanetAspectStrength(
-  planet: PlanetName,
-  aspects: AspectData[]
+export function calculateOrb(
+  planet1Long: number,
+  planet2Long: number,
+  aspectAngle: number
 ): number {
-  const planetAspects = getPlanetAspects(planet, aspects)
-  return planetAspects.reduce((total, aspect) => 
-    total + calculateAspectStrength(aspect)
-  , 0)
+  let angle = Math.abs(planet1Long - planet2Long)
+  angle = Math.min(angle, 360 - angle)
+  return Math.abs(angle - aspectAngle)
 }
 
 /**
- * Sort aspects by strength
+ * Check if a planet is applying to or separating from an aspect
  */
-export function sortAspectsByStrength(aspects: AspectData[]): AspectData[] {
-  return [...aspects].sort((a, b) => 
-    calculateAspectStrength(b) - calculateAspectStrength(a)
-  )
-}
-
-/**
- * Get the most significant aspects in a chart
- */
-export function getSignificantAspects(
-  aspects: AspectData[],
-  limit: number = 5
-): AspectData[] {
-  return sortAspectsByStrength(aspects).slice(0, limit)
-}
-
-/**
- * Get detailed interpretation for an aspect
- */
-export async function getAspectInterpretation(aspect: AspectData): Promise<string> {
-  const aspectDef = MAJOR_ASPECTS[aspect.aspect]
-  if (!aspectDef) return 'Unknown aspect type'
-
-  return generateAspectInterpretation(
-    aspect.planet1,
-    aspect.planet2,
-    aspect.aspect,
-    aspect.angle,
-    aspect.orb,
-    aspectDef.nature
-  )
-}
-
-export interface AspectPattern {
-  type: string
-  planets: PlanetName[]
-  aspects: AspectData[]
-}
-
-/**
- * Detect aspect patterns in a chart
- */
-export function detectAspectPatterns(aspects: AspectData[]): AspectPattern[] {
-  const patterns: AspectPattern[] = []
-
-  // Grand Trine detection
-  const trines = aspects.filter(a => a.aspect === 'trine')
-  for (let i = 0; i < trines.length; i++) {
-    for (let j = i + 1; j < trines.length; j++) {
-      const trine1 = trines[i]
-      const trine2 = trines[j]
-      
-      // Check if these trines share a planet
-      if (trine1.planet1 === trine2.planet1 || 
-          trine1.planet1 === trine2.planet2 ||
-          trine1.planet2 === trine2.planet1 ||
-          trine1.planet2 === trine2.planet2) {
-        
-        // Get the third planet that would complete the grand trine
-        const planets = new Set([trine1.planet1, trine1.planet2, trine2.planet1, trine2.planet2])
-        if (planets.size === 3) {
-          patterns.push({
-            type: 'Grand Trine',
-            planets: Array.from(planets) as PlanetName[],
-            aspects: [trine1, trine2]
-          })
-        }
-      }
-    }
+export function getAspectMotion(
+  planet1Long: number,
+  planet2Long: number,
+  planet1Speed: number,
+  planet2Speed: number,
+  aspectAngle: number
+): 'applying' | 'separating' | null {
+  // If planets aren't in aspect, return null
+  if (!isInAspect(planet1Long, planet2Long, aspectAngle)) {
+    return null
   }
 
-  // T-Square detection
-  const squares = aspects.filter(a => a.aspect === 'square')
-  const oppositions = aspects.filter(a => a.aspect === 'opposition')
-  
-  for (const opposition of oppositions) {
-    for (const square of squares) {
-      if (square.planet1 === opposition.planet1 ||
-          square.planet1 === opposition.planet2) {
-        patterns.push({
-          type: 'T-Square',
-          planets: [opposition.planet1, opposition.planet2, square.planet2],
-          aspects: [opposition, square]
-        })
-      }
-      if (square.planet2 === opposition.planet1 ||
-          square.planet2 === opposition.planet2) {
-        patterns.push({
-          type: 'T-Square',
-          planets: [opposition.planet1, opposition.planet2, square.planet1],
-          aspects: [opposition, square]
-        })
-      }
-    }
+  // Calculate relative motion
+  const relativeSpeed = planet1Speed - planet2Speed
+
+  // Calculate current angular separation
+  let separation = planet2Long - planet1Long
+  if (separation < 0) separation += 360
+  if (separation > 180) separation = 360 - separation
+
+  // Determine if applying or separating
+  if (separation < aspectAngle) {
+    return relativeSpeed > 0 ? 'applying' : 'separating'
+  } else {
+    return relativeSpeed < 0 ? 'applying' : 'separating'
   }
-
-  return patterns
-}
-
-/**
- * Get interpretation for an aspect pattern
- */
-export async function getPatternInterpretation(pattern: AspectPattern): Promise<string> {
-  const aspectList = pattern.aspects.map(a => ({
-    planet1: a.planet1,
-    planet2: a.planet2,
-    aspectType: a.aspect
-  }))
-
-  return generateAspectPatternInterpretation(
-    pattern.type,
-    pattern.planets,
-    aspectList
-  )
 }

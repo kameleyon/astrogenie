@@ -17,10 +17,10 @@ interface CompatibilityMatch {
   score: number
   reason: string
   elements?: {
-    fire?: number
-    earth?: number
-    air?: number
-    water?: number
+    fire?: string
+    earth?: string
+    air?: string
+    water?: string
   }
 }
 
@@ -83,7 +83,7 @@ export function CompatibilitySection({
             </p>
             {match.elements && (
               <div className="flex flex-wrap gap-2">
-                {Object.entries(match.elements).map(([element, value]) => value > 0 && (
+                {Object.entries(match.elements).map(([element, value]) => value && (
                   <span
                     key={element}
                     className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"

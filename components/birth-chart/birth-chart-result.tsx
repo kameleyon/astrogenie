@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
+import { Button } from "@/components/ui/button"
 import { InteractiveWheel } from './interactive-wheel'
 import { PlanetsSection } from './planets-section'
 import { HousesSection } from './houses-section'
@@ -12,260 +13,216 @@ import { PersonalitySnapshot } from './personality-snapshot'
 import { CompatibilitySection } from './compatibility-section'
 import { TransitEffects } from './transit-effects'
 import { WelcomeMessage } from './welcome-message'
-import type { BirthChartData, Planet, House, Pattern, Aspect } from '@/lib/types/birth-chart'
+import type { BirthChartData } from '@/lib/types/birth-chart'
 
-// Sample data for testing
-const sampleData: BirthChartData = {
-  name: "Jo",
-  location: "Les Salines, Parròquia d'Ordino, Andorra",
-  date: "Oct. 8, 1980",
-  time: "5:10 AM",
-  planets: [
-    { name: "Sun", sign: "Libra", degree: "15° 2'", house: 1 },
-    { name: "Moon", sign: "Libra", degree: "4° 46'", house: 1 },
-    { name: "Mercury", sign: "Scorpio", degree: "9° 53'", house: 2 },
-    { name: "Venus", sign: "Virgo", degree: "3° 41'", house: 12 },
-    { name: "Mars", sign: "Scorpio", degree: "27° 5'", house: 2 },
-    { name: "Jupiter", sign: "Virgo", degree: "26° 4'", house: 12 },
-    { name: "Saturn", sign: "Libra", degree: "2° 3'", house: 1 },
-    { name: "Uranus", sign: "Scorpio", degree: "23° 27'", house: 2 },
-    { name: "Neptune", sign: "Sagittarius", degree: "20° 16'", house: 3 },
-    { name: "Pluto", sign: "Libra", degree: "21° 25'", house: 1 }
-  ] as Planet[],
-  houses: [
-    { number: 1, sign: "Virgo", degree: "22°", startDegree: 0, containingPlanets: ["Sun", "Moon", "Jupiter", "Saturn"] },
-    { number: 2, sign: "Libra", degree: "18°", startDegree: 30, containingPlanets: ["Mercury", "Pluto"] },
-    { number: 3, sign: "Scorpio", degree: "17°", startDegree: 60, containingPlanets: ["Mars", "Uranus", "Neptune"] },
-    { number: 4, sign: "Sagittarius", degree: "21°", startDegree: 90 },
-    { number: 5, sign: "Capricorn", degree: "25°", startDegree: 120 },
-    { number: 6, sign: "Aquarius", degree: "28°", startDegree: 150 },
-    { number: 7, sign: "Pisces", degree: "22°", startDegree: 180 },
-    { number: 8, sign: "Aries", degree: "18°", startDegree: 210 },
-    { number: 9, sign: "Taurus", degree: "17°", startDegree: 240, containingPlanets: ["Chiron"] },
-    { number: 10, sign: "Gemini", degree: "21°", startDegree: 270 },
-    { number: 11, sign: "Cancer", degree: "25°", startDegree: 300, containingPlanets: ["North Node"] },
-    { number: 12, sign: "Leo", degree: "26°", startDegree: 330, containingPlanets: ["Venus"] }
-  ] as House[],
-  aspects: [
-    { planet1: "Sun", planet2: "Moon", aspect: "conjunction", angle: 0, orb: 2, nature: "neutral" },
-    { planet1: "Sun", planet2: "Saturn", aspect: "trine", angle: 120, orb: 3, nature: "harmonious" },
-    { planet1: "Moon", planet2: "Venus", aspect: "square", angle: 90, orb: 4, nature: "challenging" },
-    { planet1: "Mars", planet2: "Jupiter", aspect: "sextile", angle: 60, orb: 2, nature: "harmonious" },
-    { planet1: "Venus", planet2: "Saturn", aspect: "opposition", angle: 180, orb: 1, nature: "challenging" }
-  ] as Aspect[],
-  patterns: [
-    {
-      name: "Stellium",
-      type: "major",
-      description: "A powerful concentration of planetary energy in Libra",
-      planets: [
-        { name: "Jupiter", sign: "Virgo", degree: "26° 4'" },
-        { name: "Ascendant", sign: "Virgo", degree: "22°" },
-        { name: "Saturn", sign: "Libra", degree: "2° 3'" },
-        { name: "Moon", sign: "Libra", degree: "4° 46'" }
-      ],
-      elements: {
-        air: 2,
-        earth: 2
-      },
-      qualities: {
-        cardinal: 2,
-        mutable: 2
-      },
-      interpretation: "This Stellium indicates a strong focus on relationships and harmony in your life"
-    },
-    {
-      name: "T-Square",
-      type: "major",
-      description: "A dynamic configuration creating motivation and drive",
-      planets: [
-        { name: "Mars", sign: "Scorpio", degree: "27° 5'" },
-        { name: "Venus", sign: "Virgo", degree: "3° 41'" },
-        { name: "Neptune", sign: "Sagittarius", degree: "20° 16'" }
-      ],
-      elements: {
-        water: 1,
-        earth: 1,
-        fire: 1
-      },
-      qualities: {
-        fixed: 1,
-        mutable: 2
-      },
-      interpretation: "This T-Square suggests a need to balance personal desires with spiritual aspirations"
-    }
-  ] as Pattern[]
+interface BirthChartResultProps {
+  data: BirthChartData
+  onBack: () => void
 }
 
-export function BirthChartResult() {
+export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
+  // Convert numbers to percentage strings
+  const toPercentage = (value: number) => `${(value * 10)}%`
+
+  // Convert element values to percentage strings
+  const convertElements = (elements: { [key: string]: number }) => {
+    const result: { [key: string]: string } = {}
+    for (const [key, value] of Object.entries(elements)) {
+      result[key] = toPercentage(value)
+    }
+    return result
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-200">
       <div className="max-w-7xl mx-auto px-4 py-4">
         {/* Header */}
-        <div className="mb-8">
-          <motion.h1 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-lg md:text-xl font-futura mb-1"
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <motion.h1 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-lg md:text-xl font-futura mb-1"
+            >
+              {data.name}&apos;s Birth Chart
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-gray-500 dark:text-gray-400 text-sm"
+            >
+              {data.location}
+            </motion.p>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-gray-500 dark:text-gray-400 text-sm"
+            >
+              {data.date} at {data.time}
+            </motion.p>
+          </div>
+          <Button 
+            onClick={onBack}
+            variant="outline"
+            className="text-sm"
           >
-            {sampleData.name}&apos;s Birth Chart
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-gray-500 dark:text-gray-400 text-sm"
-          >
-            {sampleData.location}
-          </motion.p>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-gray-500 dark:text-gray-400 text-sm"
-          >
-            {sampleData.date} at {sampleData.time}
-          </motion.p>
+            Back to Form
+          </Button>
         </div>
 
         {/* Welcome Message */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mb-8"
-        >
-          <WelcomeMessage name={sampleData.name} data={sampleData} />
-        </motion.div>
+        <div className="mb-8">
+          <div className="shadow-lg shadow-black/20 rounded-xl">
+            <WelcomeMessage name={data.name} data={data} />
+          </div>
+        </div>
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column */}
           <div className="lg:col-span-3 space-y-6 order-3 lg:order-1">
-            <PlanetsSection planets={sampleData.planets} />
-            <HousesSection houses={sampleData.houses} />
+            <div className="shadow-lg shadow-black/20 rounded-xl">
+              <PlanetsSection planets={data.planets} />
+            </div>
+            <div className="shadow-lg shadow-black/20 rounded-xl">
+              <HousesSection houses={data.houses} />
+            </div>
           </div>
 
           {/* Center Column */}
           <div className="lg:col-span-6 order-1 lg:order-2">
             <div className="sticky top-4 space-y-6">
-              <InteractiveWheel
-                houses={sampleData.houses}
-                planets={sampleData.planets}
-              />
-              <PersonalitySnapshot
-                traits={[
-                  {
-                    title: "Leadership Style",
-                    description: "Natural diplomat with strong sense of justice",
-                    influence: "Sun",
-                    strength: "strong",
-                    keywords: ["balanced", "harmonious", "fair-minded"]
-                  },
-                  {
-                    title: "Emotional Nature",
-                    description: "Deeply sensitive to harmony in relationships",
-                    influence: "Moon",
-                    strength: "moderate",
-                    keywords: ["empathetic", "peace-loving", "diplomatic"]
-                  }
-                ]}
-                summary="Your chart shows a strong emphasis on harmony and balance, with a particular focus on relationships and social interactions."
-                dominantElements={{
-                  air: 4,
-                  earth: 3,
-                  fire: 2,
-                  water: 1
-                }}
-                dominantQualities={{
-                  cardinal: 5,
-                  fixed: 2,
-                  mutable: 3
-                }}
-              />
-              <AspectsSection aspects={sampleData.aspects} />
+              <div className="shadow-lg shadow-black/20 rounded-xl">
+                <InteractiveWheel
+                  houses={data.houses}
+                  planets={data.planets}
+                />
+              </div>
+              <div className="shadow-lg shadow-black/20 rounded-xl">
+                <PersonalitySnapshot
+                  traits={[
+                    {
+                      title: "Leadership Style",
+                      description: "Diplomatic and balanced with a strong drive for justice",
+                      influence: "Sun",
+                      strength: "strong",
+                      keywords: ["fair-minded", "harmonious", "idealistic"]
+                    },
+                    {
+                      title: "Emotional Nature",
+                      description: "Deep, intense, and transformative",
+                      influence: "Moon",
+                      strength: "strong",
+                      keywords: ["passionate", "perceptive", "resourceful"]
+                    }
+                  ]}
+                  summary="Your chart shows a fascinating blend of diplomatic Air energy and intense Water influence, creating a personality that combines social grace with emotional depth."
+                  dominantElements={{
+                    fire: toPercentage(3),
+                    earth: toPercentage(2),
+                    air: toPercentage(2),
+                    water: toPercentage(3)
+                  }}
+                  dominantQualities={{
+                    cardinal: toPercentage(3),
+                    fixed: toPercentage(2),
+                    mutable: toPercentage(5)
+                  }}
+                />
+              </div>
+              <div className="shadow-lg shadow-black/20 rounded-xl">
+                <AspectsSection aspects={data.aspects} />
+              </div>
             </div>
           </div>
 
           {/* Right Column */}
           <div className="lg:col-span-3 space-y-6 order-2 lg:order-3">
-            <TransitEffects
-              currentDate="January 15, 2024"
-              effects={[
-                {
-                  planet: {
-                    name: "Jupiter",
-                    sign: "Taurus",
-                    degree: "5°",
-                    retrograde: false
+            <div className="shadow-lg shadow-black/20 rounded-xl">
+              <TransitEffects
+                currentDate="January 15, 2024"
+                effects={[
+                  {
+                    planet: {
+                      name: "Jupiter",
+                      sign: "Taurus",
+                      degree: "5°",
+                      retrograde: false
+                    },
+                    house: 8,
+                    aspects: [
+                      {
+                        transitPlanet: "Jupiter",
+                        natalPlanet: "Moon",
+                        type: "trine",
+                        degree: "120°",
+                        orb: "2°",
+                        applying: true
+                      }
+                    ],
+                    influence: "Period of emotional growth and intuitive development",
+                    duration: "2 months",
+                    theme: "transformation"
+                  }
+                ]}
+                summary="Current transits highlight themes of personal transformation and emotional growth."
+                significantPeriods={[
+                  {
+                    startDate: "Feb 1, 2024",
+                    endDate: "Mar 15, 2024",
+                    description: "Jupiter trine Moon brings emotional expansion and spiritual growth",
+                    intensity: "high"
+                  }
+                ]}
+              />
+            </div>
+            <div className="shadow-lg shadow-black/20 rounded-xl">
+              <CompatibilitySection
+                bestMatches={[
+                  {
+                    sign: "Aquarius",
+                    score: 9,
+                    reason: "Intellectual connection and shared ideals",
+                    elements: convertElements({ air: 3 })
                   },
-                  house: 9,
-                  aspects: [
-                    {
-                      transitPlanet: "Jupiter",
-                      natalPlanet: "Venus",
-                      type: "trine",
-                      degree: 120,
-                      orb: 2,
-                      applying: true
-                    }
-                  ],
-                  influence: "Period of expansion in education or travel",
-                  duration: "2 months",
-                  theme: "opportunity"
-                }
-              ]}
-              summary="Current transits suggest a period of growth and expansion, particularly in areas of personal development and learning."
-              significantPeriods={[
-                {
-                  startDate: "Feb 1, 2024",
-                  endDate: "Mar 15, 2024",
-                  description: "Jupiter trine Venus brings opportunities for growth",
-                  intensity: "high"
-                }
-              ]}
-            />
-            <CompatibilitySection
-              bestMatches={[
-                {
-                  sign: "Gemini",
-                  score: 9,
-                  reason: "Strong air sign compatibility enhances communication",
-                  elements: { air: 3 }
-                },
-                {
-                  sign: "Aquarius",
-                  score: 8,
-                  reason: "Intellectual connection and shared ideals",
-                  elements: { air: 3 }
-                }
-              ]}
-              challengingMatches={[
-                {
-                  sign: "Cancer",
-                  score: 5,
-                  reason: "Different approaches to emotional expression",
-                  elements: { water: 3 }
-                },
-                {
-                  sign: "Capricorn",
-                  score: 6,
-                  reason: "May need to balance practicality with harmony",
-                  elements: { earth: 3 }
-                }
-              ]}
-              keyFactors={[
-                {
-                  planet: "Venus",
-                  sign: "Virgo",
-                  house: 12,
-                  influence: "Seeks perfection in relationships",
-                  strength: "strong"
-                }
-              ]}
-              generalAdvice="Your chart indicates a natural ability to create harmony in relationships, with a particular strength in diplomatic communication."
-            />
-            <PatternsSection patterns={sampleData.patterns} />
+                  {
+                    sign: "Leo",
+                    score: 8,
+                    reason: "Balancing opposition creates dynamic attraction",
+                    elements: convertElements({ fire: 3 })
+                  }
+                ]}
+                challengingMatches={[
+                  {
+                    sign: "Cancer",
+                    score: 5,
+                    reason: "Different approaches to emotional expression",
+                    elements: convertElements({ water: 3 })
+                  },
+                  {
+                    sign: "Capricorn",
+                    score: 6,
+                    reason: "May need to balance practicality with harmony",
+                    elements: convertElements({ earth: 3 })
+                  }
+                ]}
+                keyFactors={[
+                  {
+                    planet: "Venus",
+                    sign: "Leo",
+                    house: 11,
+                    influence: "Attracts through warmth and creativity",
+                    strength: "strong"
+                  }
+                ]}
+                generalAdvice="Your chart indicates a natural ability to create harmony in relationships, with a particular strength in balancing personal needs with those of others."
+              />
+            </div>
+            <div className="shadow-lg shadow-black/20 rounded-xl">
+              <PatternsSection patterns={data.patterns} />
+            </div>
           </div>
         </div>
       </div>

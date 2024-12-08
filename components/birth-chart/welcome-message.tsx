@@ -14,14 +14,14 @@ export function WelcomeMessage({ name, data }: WelcomeMessageProps) {
   const [message, setMessage] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
+  // Get Sun, Moon, and Ascendant signs
+  const sunPlanet = data.planets.find(p => p.name === 'Sun')
+  const moonPlanet = data.planets.find(p => p.name === 'Moon')
+  const ascSign = data.houses[0]?.sign // First house cusp is the Ascendant
+
   useEffect(() => {
     async function generateMessage() {
       try {
-        // Get Sun, Moon, and Ascendant signs
-        const sunPlanet = data.planets.find(p => p.name === 'Sun')
-        const moonPlanet = data.planets.find(p => p.name === 'Moon')
-        const ascSign = data.houses[0]?.sign // First house cusp is the Ascendant
-
         // Get significant features from patterns and other chart features
         const significantFeatures = [
           // Include any patterns from the data
@@ -52,10 +52,10 @@ export function WelcomeMessage({ name, data }: WelcomeMessageProps) {
     }
 
     generateMessage()
-  }, [name, data])
+  }, [name, data, sunPlanet, moonPlanet, ascSign])
 
   return (
-    <Card className="p-6 space-y-4">
+    <Card className="p-6 space-y-4 shadow-lg shadow-black/20">
       {loading ? (
         <div className="animate-pulse">
           <div className="h-4 bg-muted rounded w-3/4 mb-4"></div>
@@ -63,8 +63,18 @@ export function WelcomeMessage({ name, data }: WelcomeMessageProps) {
           <div className="h-4 bg-muted rounded w-2/3"></div>
         </div>
       ) : (
-        <div className="prose dark:prose-invert max-w-none">
-          <p className="text-lg leading-relaxed">{message}</p>
+        <div className="space-y-4">
+          <h2 className="text-2xl font-futura">
+            Hello, {name}! 👋
+          </h2>
+          <div className="prose dark:prose-invert max-w-none">
+            <p className="text-base leading-relaxed">
+              Welcome to your personalized birth chart! Your chart shows a fascinating blend of energies, with your {sunPlanet?.sign} Sun, {moonPlanet?.sign} Moon, and {ascSign} Ascendant creating a unique cosmic signature.
+            </p>
+            <p className="text-base leading-relaxed">
+              {message}
+            </p>
+          </div>
         </div>
       )}
     </Card>

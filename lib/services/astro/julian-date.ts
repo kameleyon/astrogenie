@@ -1,93 +1,81 @@
 import { DateTime, GeoPosition } from './types'
-import { findTimeZone, getZonedTime } from 'timezone-support'
+import tzlookup from 'tz-lookup'
+import moment from 'moment-timezone'
 
 /**
- * Calculates the Julian Day Number for a given date and time
- * Algorithm based on Jean Meeus' Astronomical Algorithms
+ * Get timezone based on coordinates
+ * Direct port of Python's get_timezone function
  */
-export function calculateJulianDay(dateTime: DateTime, position: GeoPosition): number {
-  const { year, month, day, hour, minute, second } = convertToUTC(dateTime, position)
-  
-  // Convert time to decimal hours
-  const decimalHours = hour + minute / 60 + second / 3600
-
-  let y = year
-  let m = month
-  
-  // Adjust year and month for January and February
-  if (m <= 2) {
-    y -= 1
-    m += 12
+function getTimezone(latitude: number, longitude: number): string {
+  try {
+    const timezone = tzlookup(latitude, longitude)
+    if (!timezone) {
+      console.warn(`Couldn't determine timezone for lat:${latitude}, lon:${longitude}. Using UTC.`)
+      return 'UTC'
+    }
+    return timezone
+  } catch (error) {
+    console.warn(`Error finding timezone for lat:${latitude}, lon:${longitude}:`, error)
+    return 'UTC'
   }
-
-  // Calculate A and B terms for Julian Day calculation
-  const a = Math.floor(y / 100)
-  const b = 2 - a + Math.floor(a / 4)
-
-  // Calculate Julian Day Number
-  const jd = Math.floor(365.25 * (y + 4716)) +
-            Math.floor(30.6001 * (m + 1)) +
-            day + decimalHours / 24 + b - 1524.5
-
-  return jd
 }
 
 /**
- * Converts local time to UTC based on geographic position
+ * Calculate Julian Day Number for a given date and time
+ * Direct port of Python implementation
  */
-function convertToUTC(dateTime: DateTime, position: GeoPosition): DateTime {
+export function calculateJulianDay(dateTime: DateTime, position: GeoPosition): number {
   try {
-    // Find timezone based on coordinates
-    const timezone = findTimeZoneByPosition(position)
-    if (!timezone) {
-      console.warn('Could not determine timezone, using UTC')
-      return dateTime
-    }
+    // Get timezone for the location (equivalent to get_timezone in Python)
+    const timezone = getTimezone(position.latitude, position.longitude)
 
-    // Create Date object in local time
-    const localDate = new Date(
+    // Create local time (equivalent to datetime() in Python)
+    const localTime = moment.tz([
       dateTime.year,
-      dateTime.month - 1, // JavaScript months are 0-based
+      dateTime.month - 1, // Moment months are 0-based
       dateTime.day,
       dateTime.hour,
       dateTime.minute,
       dateTime.second
-    )
+    ], timezone)
 
-    // Convert to timezone-aware date
-    const zonedTime = getZonedTime(localDate, timezone)
+    // Convert to UTC (equivalent to astimezone(pytz.UTC) in Python)
+    const utcTime = localTime.clone().tz('UTC')
 
-    return {
-      year: zonedTime.year,
-      month: zonedTime.month,
-      day: zonedTime.day,
-      hour: zonedTime.hours,
-      minute: zonedTime.minutes,
-      second: zonedTime.seconds
+    // Calculate decimal hours (equivalent to hour + minute/60.0 + second/3600.0 in Python)
+    const decimalHours = utcTime.hours() + 
+                        utcTime.minutes() / 60.0 + 
+                        utcTime.seconds() / 3600.0
+
+    // Calculate Julian Day using Meeus algorithm since we don't have swe.julday
+    let y = utcTime.year()
+    let m = utcTime.month() + 1 // Convert back to 1-based month
+
+    // Adjust year and month for January and February
+    if (m <= 2) {
+      y -= 1
+      m += 12
     }
+
+    // Calculate A and B terms
+    const a = Math.floor(y / 100)
+    const b = 2 - a + Math.floor(a / 4)
+
+    // Calculate Julian Day Number
+    const jd = Math.floor(365.25 * (y + 4716)) +
+              Math.floor(30.6001 * (m + 1)) +
+              utcTime.date() + decimalHours / 24 + b - 1524.5
+
+    console.debug(`Julian Day: ${jd}`)
+    return jd
   } catch (error) {
-    console.error('Error converting to UTC:', error)
-    return dateTime // Return original time if conversion fails
+    console.error('Error calculating Julian Day:', error)
+    throw error
   }
 }
 
 /**
- * Finds timezone based on geographic coordinates
- */
-function findTimeZoneByPosition(position: GeoPosition): string | null {
-  try {
-    // Use a timezone finder library or API here
-    // For now, we'll use a simple approximation based on longitude
-    const hourOffset = Math.round(position.longitude / 15)
-    return `Etc/GMT${hourOffset >= 0 ? '-' : '+'}${Math.abs(hourOffset)}`
-  } catch (error) {
-    console.error('Error finding timezone:', error)
-    return null
-  }
-}
-
-/**
- * Converts Julian Day Number back to calendar date and time
+ * Convert Julian Day Number back to calendar date and time
  */
 export function julianDayToDateTime(jd: number): DateTime {
   // Add 0.5 to shift from noon to midnight
@@ -138,18 +126,18 @@ export function julianDayToDateTime(jd: number): DateTime {
 }
 
 /**
- * Calculates the Julian Day Number for the current UTC time
+ * Get current Julian Day Number in UTC
  */
 export function getCurrentJulianDay(): number {
-  const now = new Date()
+  const now = moment.utc()
   return calculateJulianDay(
     {
-      year: now.getUTCFullYear(),
-      month: now.getUTCMonth() + 1,
-      day: now.getUTCDate(),
-      hour: now.getUTCHours(),
-      minute: now.getUTCMinutes(),
-      second: now.getUTCSeconds()
+      year: now.year(),
+      month: now.month() + 1, // Convert to 1-based month
+      day: now.date(),
+      hour: now.hours(),
+      minute: now.minutes(),
+      second: now.seconds()
     },
     { latitude: 0, longitude: 0 } // UTC coordinates
   )

@@ -1,11 +1,14 @@
-import { type ZodiacSign } from "@/components/birth-chart/zodiac-icon"
+export type ZodiacSign = 
+  | "Aries" | "Taurus" | "Gemini" | "Cancer"
+  | "Leo" | "Virgo" | "Libra" | "Scorpio"
+  | "Sagittarius" | "Capricorn" | "Aquarius" | "Pisces"
 
 export interface Planet {
   name: string
   sign: ZodiacSign
   degree: string
   house: number
-  retrograde?: boolean
+  retrograde: boolean
 }
 
 export interface House {
@@ -13,19 +16,18 @@ export interface House {
   sign: ZodiacSign
   degree: string
   startDegree: number
-  containingPlanets?: string[]
+  containingPlanets: string[]
 }
 
 export interface Aspect {
   planet1: string
   planet2: string
-  type: string
-  degree: string
-  orb?: string
-  nature?: 'harmonious' | 'challenging' | 'neutral'
+  aspect: string
+  angle: number
+  orb: number
 }
 
-export interface Pattern {
+export interface AspectPattern {
   name: string
   type: 'major' | 'minor'
   description: string
@@ -33,7 +35,6 @@ export interface Pattern {
     name: string
     sign: ZodiacSign
     degree: string
-    house?: number
   }>
   elements?: {
     fire?: number
@@ -47,7 +48,11 @@ export interface Pattern {
     mutable?: number
   }
   interpretation?: string
-  houses?: number[]
+}
+
+export interface SignificantFeature {
+  type: string
+  description: string
 }
 
 export interface BirthChartData {
@@ -58,5 +63,21 @@ export interface BirthChartData {
   planets: Planet[]
   houses: House[]
   aspects: Aspect[]
-  patterns: Pattern[]
+  patterns: AspectPattern[]
+  ascendant: number
+  midheaven: number
+  significantFeatures: SignificantFeature[]
 }
+
+export interface PlanetPosition {
+  longitude: number
+  latitude: number
+  distance: number
+  longitudeSpeed: number
+  sign: ZodiacSign
+  retrograde: boolean
+}
+
+export type PlanetName = 
+  | "Sun" | "Moon" | "Mercury" | "Venus" | "Mars"
+  | "Jupiter" | "Saturn" | "Uranus" | "Neptune" | "Pluto"

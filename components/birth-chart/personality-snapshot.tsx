@@ -1,191 +1,127 @@
 "use client"
 
-import React from 'react'
-import { motion } from 'framer-motion'
-import { type ZodiacSign } from './zodiac-icon'
+import { Card } from "@/components/ui/card"
 
-interface PersonalityTrait {
+interface Trait {
   title: string
   description: string
-  influence: 'Sun' | 'Moon' | 'Ascendant' | 'Other'
-  sign?: ZodiacSign
-  house?: number
-  strength?: 'strong' | 'moderate' | 'weak'
-  keywords?: string[]
+  influence: string
+  strength: "weak" | "moderate" | "strong"
+  keywords: string[]
 }
 
 interface PersonalitySnapshotProps {
-  traits: PersonalityTrait[]
+  traits: Trait[]
   summary: string
-  dominantElements?: {
-    fire?: number
-    earth?: number
-    air?: number
-    water?: number
+  dominantElements: {
+    fire?: string
+    earth?: string
+    air?: string
+    water?: string
   }
-  dominantQualities?: {
-    cardinal?: number
-    fixed?: number
-    mutable?: number
+  dominantQualities: {
+    cardinal?: string
+    fixed?: string
+    mutable?: string
   }
 }
 
-export function PersonalitySnapshot({ 
-  traits, 
-  summary, 
+export function PersonalitySnapshot({
+  traits,
+  summary,
   dominantElements,
-  dominantQualities 
+  dominantQualities
 }: PersonalitySnapshotProps) {
-  const getInfluenceColor = (influence: string) => {
-    switch (influence) {
-      case 'Sun':
-        return 'text-yellow-500 dark:text-yellow-400'
-      case 'Moon':
-        return 'text-blue-500 dark:text-blue-400'
-      case 'Ascendant':
-        return 'text-purple-500 dark:text-purple-400'
-      default:
-        return 'text-gray-500 dark:text-gray-400'
-    }
-  }
-
-  const getStrengthBadge = (strength?: 'strong' | 'moderate' | 'weak') => {
-    switch (strength) {
-      case 'strong':
-        return 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-      case 'moderate':
-        return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300'
-      case 'weak':
-        return 'bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-300'
-      default:
-        return 'bg-gray-100 dark:bg-gray-900/20 text-gray-700 dark:text-gray-300'
-    }
-  }
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.6 }}
-      className="bg-white/5 backdrop-blur-sm rounded-xl p-6 space-y-6"
-    >
+    <Card className="p-6 space-y-6">
       <div>
-        <h2 className="text-lg font-futura text-gray-900 dark:text-white mb-3">
-          Personality Snapshot
-        </h2>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          {summary}
-        </p>
-      </div>
-
-      {/* Core Traits */}
-      <div className="space-y-4">
-        {traits.map((trait, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 * index }}
-            className="space-y-2"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-[#D15200] dark:text-[#FFA600]">
-                {trait.title}
-              </h3>
-              <div className="flex items-center space-x-2">
-                <span className={`text-xs ${getInfluenceColor(trait.influence)}`}>
-                  {trait.influence}
-                </span>
-                {trait.strength && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${getStrengthBadge(trait.strength)}`}>
-                    {trait.strength}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              {trait.description}
-            </p>
-
-            {trait.keywords && (
+        <h3 className="text-lg font-semibold mb-4">Core Personality Traits</h3>
+        <div className="space-y-4">
+          {traits.map((trait, index) => (
+            <div key={index} className="space-y-2">
+              <h4 className="font-medium">{trait.title}</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{trait.description}</p>
               <div className="flex flex-wrap gap-2">
-                {trait.keywords.map((keyword, keywordIndex) => (
+                {trait.keywords.map((keyword, idx) => (
                   <span
-                    key={keywordIndex}
-                    className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                    key={idx}
+                    className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full"
                   >
                     {keyword}
                   </span>
                 ))}
               </div>
-            )}
-          </motion.div>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Element & Quality Distribution */}
-      <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-200 dark:border-gray-800">
-        {/* Elements */}
-        {dominantElements && (
-          <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-              Dominant Elements
-            </h3>
-            <div className="space-y-2">
-              {Object.entries(dominantElements).map(([element, value]) => value > 0 && (
-                <div key={element} className="flex items-center justify-between">
-                  <span className="text-sm capitalize text-gray-600 dark:text-gray-300">
-                    {element}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-24 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(value / 10) * 100}%` }}
-                        className="h-full bg-[#FFA600]"
-                      />
-                    </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {value}
-                    </span>
-                  </div>
-                </div>
-              ))}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Element Balance</h3>
+        <div className="grid grid-cols-2 gap-4">
+          {Object.entries(dominantElements).map(([element, value]) => (
+            <div key={element} className="flex items-center gap-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div
+                  className={`h-2.5 rounded-full ${getElementColor(element)}`}
+                  style={{ width: value }}
+                ></div>
+              </div>
+              <span className="text-sm min-w-[60px]">{element}</span>
             </div>
-          </div>
-        )}
-
-        {/* Qualities */}
-        {dominantQualities && (
-          <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-              Dominant Qualities
-            </h3>
-            <div className="space-y-2">
-              {Object.entries(dominantQualities).map(([quality, value]) => value > 0 && (
-                <div key={quality} className="flex items-center justify-between">
-                  <span className="text-sm capitalize text-gray-600 dark:text-gray-300">
-                    {quality}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-24 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(value / 10) * 100}%` }}
-                        className="h-full bg-[#FFA600]"
-                      />
-                    </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {value}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
-    </motion.div>
+
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Modality Distribution</h3>
+        <div className="grid grid-cols-2 gap-4">
+          {Object.entries(dominantQualities).map(([quality, value]) => (
+            <div key={quality} className="flex items-center gap-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div
+                  className={`h-2.5 rounded-full ${getQualityColor(quality)}`}
+                  style={{ width: value }}
+                ></div>
+              </div>
+              <span className="text-sm min-w-[60px]">{quality}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Summary</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300">{summary}</p>
+      </div>
+    </Card>
   )
+}
+
+function getElementColor(element: string): string {
+  switch (element.toLowerCase()) {
+    case 'fire':
+      return 'bg-red-500'
+    case 'earth':
+      return 'bg-green-500'
+    case 'air':
+      return 'bg-blue-500'
+    case 'water':
+      return 'bg-purple-500'
+    default:
+      return 'bg-gray-500'
+  }
+}
+
+function getQualityColor(quality: string): string {
+  switch (quality.toLowerCase()) {
+    case 'cardinal':
+      return 'bg-orange-500'
+    case 'fixed':
+      return 'bg-indigo-500'
+    case 'mutable':
+      return 'bg-teal-500'
+    default:
+      return 'bg-gray-500'
+  }
 }

@@ -1,76 +1,62 @@
-import { AspectData, PlanetPosition } from './types'
-import { PlanetName } from './planets'
+import { AspectData, PlanetPosition, PlanetName, AspectType, AspectNature } from './types'
+import { generateAspectInterpretation, generateAspectPatternInterpretation } from '../openrouter'
 
 export interface AspectDefinition {
   angle: number
   orb: number
-  nature: 'harmonious' | 'challenging' | 'neutral'
-  interpretation: string
+  nature: AspectNature
 }
 
-export const MAJOR_ASPECTS: Record<string, AspectDefinition> = {
+export const MAJOR_ASPECTS: Record<AspectType, AspectDefinition> = {
   conjunction: {
     angle: 0,
     orb: 10,
-    nature: 'neutral',
-    interpretation: 'Fusion and intensification of planetary energies'
+    nature: 'neutral'
   },
   opposition: {
     angle: 180,
     orb: 10,
-    nature: 'challenging',
-    interpretation: 'Tension and awareness between planetary energies'
+    nature: 'challenging'
   },
   trine: {
     angle: 120,
     orb: 8,
-    nature: 'harmonious',
-    interpretation: 'Easy flow and harmony between planetary energies'
+    nature: 'harmonious'
   },
   square: {
     angle: 90,
     orb: 8,
-    nature: 'challenging',
-    interpretation: 'Tension and growth between planetary energies'
+    nature: 'challenging'
   },
   sextile: {
     angle: 60,
     orb: 6,
-    nature: 'harmonious',
-    interpretation: 'Opportunity and cooperation between planetary energies'
-  }
-}
-
-export const MINOR_ASPECTS: Record<string, AspectDefinition> = {
+    nature: 'harmonious'
+  },
   quintile: {
     angle: 72,
     orb: 2,
-    nature: 'harmonious',
-    interpretation: 'Creative expression and talent'
+    nature: 'harmonious'
   },
   semisextile: {
     angle: 30,
     orb: 2,
-    nature: 'neutral',
-    interpretation: 'Subtle connection and minor adjustments'
+    nature: 'neutral'
   },
   quincunx: {
     angle: 150,
     orb: 3,
-    nature: 'challenging',
-    interpretation: 'Adjustment and adaptation required'
+    nature: 'challenging'
   },
   sesquiquadrate: {
     angle: 135,
     orb: 2,
-    nature: 'challenging',
-    interpretation: 'Internal tension and adjustment'
+    nature: 'challenging'
   },
   semisquare: {
     angle: 45,
     orb: 2,
-    nature: 'challenging',
-    interpretation: 'Minor challenges and irritations'
+    nature: 'challenging'
   }
 }
 
@@ -97,9 +83,7 @@ export function calculateAspects(
   includeMinorAspects: boolean = false
 ): AspectData[] {
   const aspects: AspectData[] = []
-  const aspectTypes = includeMinorAspects 
-    ? { ...MAJOR_ASPECTS, ...MINOR_ASPECTS }
-    : MAJOR_ASPECTS
+  const aspectTypes = MAJOR_ASPECTS
 
   const planets = Object.keys(planetPositions) as PlanetName[]
 
@@ -118,9 +102,19 @@ export function calculateAspects(
           aspects.push({
             planet1,
             planet2,
-            aspect: aspectName,
+            aspect: aspectName as AspectType,
             angle,
-            orb
+            orb,
+            nature: aspectDef.nature,
+            strength: calculateAspectStrength({
+              planet1,
+              planet2,
+              aspect: aspectName as AspectType,
+              angle,
+              orb,
+              nature: aspectDef.nature
+            }),
+            applying: isApplyingAspect(pos1.longitudeSpeed, pos2.longitudeSpeed, angle, aspectDef.angle)
           })
           break // Only record the tightest aspect between two planets
         }
@@ -135,7 +129,7 @@ export function calculateAspects(
  * Calculate aspect strength based on orb and aspect type
  */
 export function calculateAspectStrength(aspect: AspectData): number {
-  const aspectDef = { ...MAJOR_ASPECTS, ...MINOR_ASPECTS }[aspect.aspect]
+  const aspectDef = MAJOR_ASPECTS[aspect.aspect]
   if (!aspectDef) return 0
 
   // Base strength based on aspect type
@@ -155,6 +149,23 @@ export function calculateAspectStrength(aspect: AspectData): number {
   // Reduce strength based on orb
   const orbFactor = 1 - (aspect.orb / aspectDef.orb)
   return baseStrength * orbFactor
+}
+
+/**
+ * Determine if an aspect is applying or separating
+ */
+function isApplyingAspect(
+  speed1: number,
+  speed2: number,
+  currentAngle: number,
+  aspectAngle: number
+): boolean {
+  const relativeSpeed = speed1 - speed2
+  const angleToAspect = Math.abs(currentAngle - aspectAngle)
+  
+  // If relative speed is positive, faster planet is catching up
+  return (relativeSpeed > 0 && angleToAspect > 0) ||
+         (relativeSpeed < 0 && angleToAspect < 0)
 }
 
 /**
@@ -202,56 +213,101 @@ export function getSignificantAspects(
 }
 
 /**
- * Get the nature of an aspect (harmonious, challenging, neutral)
+ * Get detailed interpretation for an aspect
  */
-export function getAspectNature(aspectName: string): 'harmonious' | 'challenging' | 'neutral' {
-  const aspect = { ...MAJOR_ASPECTS, ...MINOR_ASPECTS }[aspectName]
-  return aspect?.nature || 'neutral'
+export async function getAspectInterpretation(aspect: AspectData): Promise<string> {
+  const aspectDef = MAJOR_ASPECTS[aspect.aspect]
+  if (!aspectDef) return 'Unknown aspect type'
+
+  return generateAspectInterpretation(
+    aspect.planet1,
+    aspect.planet2,
+    aspect.aspect,
+    aspect.angle,
+    aspect.orb,
+    aspectDef.nature
+  )
+}
+
+export interface AspectPattern {
+  type: string
+  planets: PlanetName[]
+  aspects: AspectData[]
 }
 
 /**
- * Calculate mutual reception between planets
+ * Detect aspect patterns in a chart
  */
-export function calculateMutualReceptions(
-  planetPositions: Record<PlanetName, PlanetPosition>
-): Array<{ planet1: PlanetName; planet2: PlanetName }> {
-  const receptions: Array<{ planet1: PlanetName; planet2: PlanetName }> = []
-  const planets = Object.keys(planetPositions) as PlanetName[]
+export function detectAspectPatterns(aspects: AspectData[]): AspectPattern[] {
+  const patterns: AspectPattern[] = []
 
-  for (let i = 0; i < planets.length; i++) {
-    for (let j = i + 1; j < planets.length; j++) {
-      const planet1 = planets[i]
-      const planet2 = planets[j]
-      const sign1 = planetPositions[planet1].sign
-      const sign2 = planetPositions[planet2].sign
-
-      // Check if planets are in each other's ruling signs
-      // This is a simplified version - could be expanded to include exaltations
-      if (isRulingSign(planet1, sign2) && isRulingSign(planet2, sign1)) {
-        receptions.push({ planet1, planet2 })
+  // Grand Trine detection
+  const trines = aspects.filter(a => a.aspect === 'trine')
+  for (let i = 0; i < trines.length; i++) {
+    for (let j = i + 1; j < trines.length; j++) {
+      const trine1 = trines[i]
+      const trine2 = trines[j]
+      
+      // Check if these trines share a planet
+      if (trine1.planet1 === trine2.planet1 || 
+          trine1.planet1 === trine2.planet2 ||
+          trine1.planet2 === trine2.planet1 ||
+          trine1.planet2 === trine2.planet2) {
+        
+        // Get the third planet that would complete the grand trine
+        const planets = new Set([trine1.planet1, trine1.planet2, trine2.planet1, trine2.planet2])
+        if (planets.size === 3) {
+          patterns.push({
+            type: 'Grand Trine',
+            planets: Array.from(planets) as PlanetName[],
+            aspects: [trine1, trine2]
+          })
+        }
       }
     }
   }
 
-  return receptions
+  // T-Square detection
+  const squares = aspects.filter(a => a.aspect === 'square')
+  const oppositions = aspects.filter(a => a.aspect === 'opposition')
+  
+  for (const opposition of oppositions) {
+    for (const square of squares) {
+      if (square.planet1 === opposition.planet1 ||
+          square.planet1 === opposition.planet2) {
+        patterns.push({
+          type: 'T-Square',
+          planets: [opposition.planet1, opposition.planet2, square.planet2],
+          aspects: [opposition, square]
+        })
+      }
+      if (square.planet2 === opposition.planet1 ||
+          square.planet2 === opposition.planet2) {
+        patterns.push({
+          type: 'T-Square',
+          planets: [opposition.planet1, opposition.planet2, square.planet1],
+          aspects: [opposition, square]
+        })
+      }
+    }
+  }
+
+  return patterns
 }
 
 /**
- * Helper function to check if a planet rules a sign
+ * Get interpretation for an aspect pattern
  */
-function isRulingSign(planet: PlanetName, sign: string): boolean {
-  const rulerships: Record<PlanetName, string[]> = {
-    Sun: ['Leo'],
-    Moon: ['Cancer'],
-    Mercury: ['Gemini', 'Virgo'],
-    Venus: ['Taurus', 'Libra'],
-    Mars: ['Aries', 'Scorpio'],
-    Jupiter: ['Sagittarius', 'Pisces'],
-    Saturn: ['Capricorn', 'Aquarius'],
-    Uranus: ['Aquarius'],
-    Neptune: ['Pisces'],
-    Pluto: ['Scorpio']
-  }
+export async function getPatternInterpretation(pattern: AspectPattern): Promise<string> {
+  const aspectList = pattern.aspects.map(a => ({
+    planet1: a.planet1,
+    planet2: a.planet2,
+    aspectType: a.aspect
+  }))
 
-  return rulerships[planet]?.includes(sign) || false
+  return generateAspectPatternInterpretation(
+    pattern.type,
+    pattern.planets,
+    aspectList
+  )
 }

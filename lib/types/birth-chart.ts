@@ -3,81 +3,53 @@ export type ZodiacSign =
   | "Leo" | "Virgo" | "Libra" | "Scorpio"
   | "Sagittarius" | "Capricorn" | "Aquarius" | "Pisces"
 
-export interface Planet {
-  name: string
-  sign: ZodiacSign
-  degree: string
-  house: number
-  retrograde: boolean
+// Base interface for positions
+export interface Position {
+  longitude: number;
+  latitude: number;
+  distance: number;
+  longitudeSpeed: number;
+  sign: ZodiacSign;
+  retrograde: boolean;  // Required in all cases
+  formatted: string;    // Required in all cases
 }
 
-export interface House {
-  number: number
-  sign: ZodiacSign
-  degree: string
-  startDegree: number
-  containingPlanets: string[]
+// Planet position extends base position
+export interface PlanetPosition extends Position {}
+
+// House data
+export interface HouseData {
+  cusp: number;
+  sign: ZodiacSign;
+  formatted: string;  // Required
 }
 
-export interface Aspect {
-  planet1: string
-  planet2: string
-  aspect: string
-  angle: number
-  orb: number
+// Aspect data
+export interface AspectData {
+  planet1: string;
+  planet2: string;
+  aspect: string;
+  angle: number;
+  orb: number;
 }
 
-export interface AspectPattern {
-  name: string
-  type: 'major' | 'minor'
-  description: string
-  planets: Array<{
-    name: string
-    sign: ZodiacSign
-    degree: string
-  }>
-  elements?: {
-    fire?: number
-    earth?: number
-    air?: number
-    water?: number
-  }
-  qualities?: {
-    cardinal?: number
-    fixed?: number
-    mutable?: number
-  }
-  interpretation?: string
+// Pattern data
+export interface PatternData {
+  name: string;
+  planets: string[];
+  description: string;
 }
 
-export interface SignificantFeature {
-  type: string
-  description: string
-}
-
+// Complete birth chart data
 export interface BirthChartData {
-  name: string
-  location: string
-  date: string
-  time: string
-  planets: Planet[]
-  houses: House[]
-  aspects: Aspect[]
-  patterns: AspectPattern[]
-  ascendant: number
-  midheaven: number
-  significantFeatures: SignificantFeature[]
+  name: string;
+  location: string;
+  date: string;
+  time: string;
+  planets: Array<PlanetPosition & { name: string }>;
+  houses: Record<string, HouseData>;
+  aspects: AspectData[];
+  patterns: PatternData[];
+  ascendant: Position;
+  midheaven: Position;
 }
-
-export interface PlanetPosition {
-  longitude: number
-  latitude: number
-  distance: number
-  longitudeSpeed: number
-  sign: ZodiacSign
-  retrograde: boolean
-}
-
-export type PlanetName = 
-  | "Sun" | "Moon" | "Mercury" | "Venus" | "Mars"
-  | "Jupiter" | "Saturn" | "Uranus" | "Neptune" | "Pluto"

@@ -14,10 +14,50 @@ import { CompatibilitySection } from './compatibility-section'
 import { TransitEffects } from './transit-effects'
 import { WelcomeMessage } from './welcome-message'
 import type { BirthChartData } from '@/lib/types/birth-chart'
+import type { ZodiacSign } from './zodiac-icon'
 
 interface BirthChartResultProps {
   data: BirthChartData
   onBack: () => void
+}
+
+// Component interfaces
+interface ComponentPlanet {
+  name: string
+  sign: ZodiacSign
+  degree: string
+  house: number
+  retrograde?: boolean
+  aspects?: Array<{
+    planet: string
+    type: string
+    degree: string
+  }>
+}
+
+interface ComponentPattern {
+  name: string
+  type: 'major' | 'minor'
+  planets: Array<{
+    name: string
+    sign: ZodiacSign
+    degree: string
+    house?: number
+  }>
+  description: string
+  interpretation?: string
+  elements?: {
+    fire?: number
+    earth?: number
+    air?: number
+    water?: number
+  }
+  qualities?: {
+    cardinal?: number
+    fixed?: number
+    mutable?: number
+  }
+  houses?: number[]
 }
 
 export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
@@ -32,6 +72,104 @@ export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
     }
     return result
   }
+
+  // Transform planets data into the format expected by components
+  const transformPlanets = () => {
+    return data.planets.map(planet => {
+      // Find which house contains this planet
+      const house = Object.entries(data.houses).find(([key, houseData]) => {
+        if (!key.startsWith('House_')) return false
+        
+        const houseNumber = parseInt(key.split('_')[1])
+        const nextHouseNumber = (houseNumber % 12) + 1
+        const nextHouseKey = `House_${nextHouseNumber}`
+        
+        const houseCusp = houseData.cusp
+        const nextHouseCusp = data.houses[nextHouseKey].cusp
+        
+        if (nextHouseCusp > houseCusp) {
+          return planet.longitude >= houseCusp && planet.longitude < nextHouseCusp
+        } else {
+          // Handle case when house spans 0° Aries
+          return planet.longitude >= houseCusp || planet.longitude < nextHouseCusp
+        }
+      })
+
+      const houseNumber = house ? parseInt(house[0].split('_')[1]) : 1
+
+      // Find aspects for this planet
+      const planetAspects = data.aspects
+        .filter(aspect => aspect.planet1 === planet.name || aspect.planet2 === planet.name)
+        .map(aspect => ({
+          planet: aspect.planet1 === planet.name ? aspect.planet2 : aspect.planet1,
+          type: aspect.aspect.toLowerCase(),
+          degree: aspect.angle.toString()
+        }))
+
+      return {
+        name: planet.name,
+        sign: planet.sign,
+        degree: planet.formatted,
+        house: houseNumber,
+        retrograde: planet.retrograde,
+        aspects: planetAspects
+      }
+    })
+  }
+
+  // Transform houses data into the format expected by components
+  const transformHouses = () => {
+    const houseNumbers = Array.from({ length: 12 }, (_, i) => i + 1)
+    return houseNumbers.map(number => {
+      const houseKey = `House_${number}`
+      const houseData = data.houses[houseKey]
+      return {
+        number,
+        sign: houseData.sign,
+        degree: houseData.formatted,
+        startDegree: houseData.cusp,
+        // Find planets in this house
+        containingPlanets: data.planets
+          .filter(planet => {
+            const planetDegree = planet.longitude
+            const nextHouseKey = `House_${(number % 12) + 1}`
+            const nextHouseCusp = data.houses[nextHouseKey].cusp
+            const houseCusp = houseData.cusp
+            
+            if (nextHouseCusp > houseCusp) {
+              return planetDegree >= houseCusp && planetDegree < nextHouseCusp
+            } else {
+              // Handle case when house spans 0° Aries
+              return planetDegree >= houseCusp || planetDegree < nextHouseCusp
+            }
+          })
+          .map(planet => planet.name)
+      }
+    })
+  }
+
+  // Transform patterns data into the format expected by PatternsSection
+  const transformPatterns = (): ComponentPattern[] => {
+    return data.patterns.map(pattern => ({
+      name: pattern.name,
+      type: pattern.planets.length > 3 ? 'major' : 'minor',
+      planets: pattern.planets.map(planetName => {
+        const planet = data.planets.find(p => p.name === planetName)!
+        const house = transformPlanets().find(p => p.name === planetName)?.house
+        return {
+          name: planetName,
+          sign: planet.sign,
+          degree: planet.formatted,
+          house
+        }
+      }),
+      description: pattern.description
+    }))
+  }
+
+  // Transform data for InteractiveWheel
+  const wheelHouses = transformHouses()
+  const wheelPlanets = transformPlanets()
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-800 dark:text-gray-200">
@@ -84,10 +222,10 @@ export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
           {/* Left Column */}
           <div className="lg:col-span-3 space-y-6 order-3 lg:order-1">
             <div className="shadow-lg shadow-black/20 rounded-xl">
-              <PlanetsSection planets={data.planets} />
+              <PlanetsSection planets={wheelPlanets} />
             </div>
             <div className="shadow-lg shadow-black/20 rounded-xl">
-              <HousesSection houses={data.houses} />
+              <HousesSection houses={wheelHouses} />
             </div>
           </div>
 
@@ -96,8 +234,8 @@ export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
             <div className="sticky top-4 space-y-6">
               <div className="shadow-lg shadow-black/20 rounded-xl">
                 <InteractiveWheel
-                  houses={data.houses}
-                  planets={data.planets}
+                  houses={wheelHouses}
+                  planets={wheelPlanets}
                 />
               </div>
               <div className="shadow-lg shadow-black/20 rounded-xl">
@@ -221,7 +359,7 @@ export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
               />
             </div>
             <div className="shadow-lg shadow-black/20 rounded-xl">
-              <PatternsSection patterns={data.patterns} />
+              <PatternsSection patterns={transformPatterns()} />
             </div>
           </div>
         </div>

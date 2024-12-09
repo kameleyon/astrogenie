@@ -5,6 +5,7 @@ const {
     getTimezone,
     calculateJulianDay,
     calculatePlanetPositions,
+    calculateAscendant,
     calculateHouses,
     calculateAspects
 } = require('./pure-calculations.js')

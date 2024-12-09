@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import { InteractiveWheel } from './interactive-wheel'
 import { PlanetsSection } from './planets-section'
 import { HousesSection } from './houses-section'
@@ -75,7 +75,7 @@ export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
 
   // Transform planets data into the format expected by components
   const transformPlanets = () => {
-    return data.planets.map(planet => {
+    const planetData = data.planets.map(planet => {
       // Find which house contains this planet
       const house = Object.entries(data.houses).find(([key, houseData]) => {
         if (!key.startsWith('House_')) return false
@@ -115,6 +115,26 @@ export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
         aspects: planetAspects
       }
     })
+
+    // Add Ascendant and Midheaven
+    const ascendant = {
+      name: 'ASC',
+      sign: data.ascendant.sign,
+      degree: data.ascendant.formatted,
+      house: 1,
+      retrograde: false
+    }
+
+    const midheaven = {
+      name: 'MC',
+      sign: data.midheaven.sign,
+      degree: data.midheaven.formatted,
+      house: 10,
+      retrograde: false
+    }
+
+    // Return all planets plus ASC and MC
+    return [...planetData, ascendant, midheaven]
   }
 
   // Transform houses data into the format expected by components

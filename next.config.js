@@ -5,7 +5,7 @@ const nextConfig = {
     domains: ['i.ibb.co'], // Allow images from i.ibb.co
   },
   webpack: (config, { isServer }) => {
-    // Handle native modules (like swisseph)
+    // Handle native modules (like swisseph-v2)
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
@@ -15,43 +15,20 @@ const nextConfig = {
 
     if (isServer) {
       // Server-side configuration
-      config.module.rules.push({
-        test: /\.node$/,
-        use: [
-          {
-            loader: 'node-loader',
-            options: {
-              name: '[name].[ext]',
-            },
-          },
-        ],
-      })
+      config.externals = [...config.externals, 'swisseph-v2']
     } else {
       // Client-side configuration
       config.resolve.alias = {
         ...config.resolve.alias,
-        swisseph: false,
+        'swisseph-v2': false,
       }
     }
-
-    // Ensure native addons are processed correctly
-    config.module.rules.push({
-      test: /\.(m?js|node)$/,
-      parser: { amd: false },
-      use: {
-        loader: '@vercel/webpack-asset-relocator-loader',
-        options: {
-          outputAssetBase: 'native_modules',
-          production: true, // Force production mode for better optimization
-        },
-      },
-    })
 
     return config
   },
   experimental: {
     serverActions: true,
-    serverComponentsExternalPackages: ['swisseph'], // Add swisseph as external package
+    serverComponentsExternalPackages: ['swisseph-v2'], // Add swisseph-v2 as external package
   },
 }
 

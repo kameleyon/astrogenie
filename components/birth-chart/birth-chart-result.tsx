@@ -12,7 +12,6 @@ import { PatternsSection } from './patterns-section'
 import { PersonalitySnapshot } from './personality-snapshot'
 import { CompatibilitySection } from './compatibility-section'
 import { TransitEffects } from './transit-effects'
-import { WelcomeMessage } from './welcome-message'
 import { generateWithOpenRouter } from '@/lib/services/openrouter'
 import type { BirthChartData } from '@/lib/types/birth-chart'
 import type { ZodiacSign } from './zodiac-icon'
@@ -23,36 +22,69 @@ interface BirthChartResultProps {
 }
 
 export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
-  const [risingSignDescription, setRisingSignDescription] = useState<string>('')
+  const [personalizedMessage, setPersonalizedMessage] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function loadRisingSignDescription() {
+    async function loadPersonalizedMessage() {
       try {
-        const prompt = `Generate a concise interpretation of ${data.ascendant.sign} Rising (Ascendant) in a birth chart.
+        const sunPlanet = data.planets.find(p => p.name === 'Sun')
+        const moonPlanet = data.planets.find(p => p.name === 'Moon')
+        
+        // Find any stelliums (3 or more planets in a sign)
+        const planetsBySign = data.planets.reduce((acc, planet) => {
+          acc[planet.sign] = (acc[planet.sign] || []).concat(planet.name)
+          return acc
+        }, {} as Record<string, string[]>)
+        
+        const stelliums = Object.entries(planetsBySign)
+          .filter(([_, planets]) => planets.length >= 3)
+          .map(([sign, planets]) => ({
+            sign,
+            planets: planets.join(', ')
+          }))
 
-The interpretation should:
-1. Describe how this rising sign influences first impressions and the way others perceive them
-2. Explain their natural approach to new situations and environments
-3. Highlight key personality traits and mannerisms associated with this rising sign
-4. Keep the tone professional yet accessible
-5. Be concise and focused (2-3 sentences)
-6. Avoid technical jargon
+        // Find significant aspects
+        const significantAspects = data.aspects
+          .filter(aspect => {
+            // Filter for major aspects (conjunction, trine, square, opposition)
+            const majorAspects = ['Conjunction', 'Trine', 'Square', 'Opposition']
+            return majorAspects.includes(aspect.aspect) && aspect.orb <= 3
+          })
+          .slice(0, 2) // Get top 2 most significant aspects
 
-Format as a single, flowing paragraph focused on the immediate impact of this rising sign.`
+        const prompt = `Write a personalized birth chart interpretation for ${data.name} with:
+- ${sunPlanet?.sign} Sun
+- ${moonPlanet?.sign} Moon
+- ${data.ascendant.sign} Ascendant
+${stelliums.length > 0 ? `\nNotable stelliums:\n${stelliums.map(s => `- ${s.planets} in ${s.sign}`).join('\n')}` : ''}
+${significantAspects.length > 0 ? `\nSignificant aspects:\n${significantAspects.map(a => `- ${a.planet1} ${a.aspect.toLowerCase()} ${a.planet2}`).join('\n')}` : ''}
+${data.patterns.length > 0 ? `\nNotable patterns:\n${data.patterns.map(p => `- ${p.name}: ${p.planets.join(', ')}`).join('\n')}` : ''}
 
-        const description = await generateWithOpenRouter(prompt)
-        setRisingSignDescription(description)
+Create a warm, personal message that:
+1. Addresses ${data.name} directly by name
+2. Describes how their Sun, Moon, and Ascendant work together to create their unique personality
+3. Highlights the most significant features found in their chart (stelliums, aspects, or patterns)
+4. Explains what these placements mean specifically for them
+5. Focuses on their natural strengths and special qualities
+6. Makes them feel seen and understood
+7. Is about 4-5 sentences long
+8. Avoids technical jargon
+
+Format as a single, flowing paragraph that captures ${data.name}'s unique essence and makes them feel like you're speaking directly to them about their personal cosmic blueprint.`
+
+        const message = await generateWithOpenRouter(prompt)
+        setPersonalizedMessage(message)
       } catch (error) {
-        console.error('Error generating rising sign description:', error)
-        setRisingSignDescription('Your rising sign shapes how others perceive you and your natural approach to new situations.')
+        console.error('Error generating personalized message:', error)
+        setPersonalizedMessage(`${data.name}, your ${data.ascendant.sign} Ascendant, ${data.planets.find(p => p.name === 'Sun')?.sign} Sun, and ${data.planets.find(p => p.name === 'Moon')?.sign} Moon create a unique cosmic signature that shapes your approach to life.`)
       } finally {
         setLoading(false)
       }
     }
 
-    loadRisingSignDescription()
-  }, [data.ascendant.sign])
+    loadPersonalizedMessage()
+  }, [data])
 
   // Convert numbers to percentage strings
   const toPercentage = (value: number) => `${(value * 10)}%`
@@ -222,21 +254,14 @@ Format as a single, flowing paragraph focused on the immediate impact of this ri
           </Button>
         </div>
 
-        {/* Welcome Message */}
-        <div className="mb-8">
-          <div className="shadow-lg shadow-black/20 rounded-xl">
-            <WelcomeMessage name={data.name} data={data} />
-          </div>
-        </div>
-
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column */}
           <div className="lg:col-span-3 space-y-6 order-3 lg:order-1">
-            {/* Rising Sign Section */}
+            {/* Personalized Message Section */}
             <div className="shadow-lg shadow-black/20 rounded-xl">
               <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6">
-                <h2 className="text-lg font-futura text-gray-900 dark:text-white mb-2">Rising Sign</h2>
+                <h2 className="text-lg font-futura text-gray-900 dark:text-white mb-2">Your Cosmic Blueprint</h2>
                 {loading ? (
                   <div className="animate-pulse">
                     <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
@@ -244,7 +269,7 @@ Format as a single, flowing paragraph focused on the immediate impact of this ri
                   </div>
                 ) : (
                   <p className="text-sm text-gray-700 dark:text-gray-300">
-                    {risingSignDescription}
+                    {personalizedMessage}
                   </p>
                 )}
               </div>

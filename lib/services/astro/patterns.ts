@@ -1,5 +1,4 @@
 import { BirthChartData, PatternData, PlanetPosition } from '@/lib/types/birth-chart'
-import { isInAspect } from './aspects'
 
 interface SpecialFeature {
   description: string
@@ -7,9 +6,409 @@ interface SpecialFeature {
 }
 
 /**
- * Detect Splay patterns (planets spread out evenly)
+ * Calculate the angular distance between two points on the ecliptic
  */
-function detectSplay(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+function getDistance(pos1: number, pos2: number): number {
+  const diff = Math.abs(pos1 - pos2)
+  return Math.min(diff, 360 - diff)
+}
+
+/**
+ * Check if two points are in aspect with a specific orb
+ */
+function isAspect(long1: number, long2: number, aspectAngle: number, orb: number): boolean {
+  const diff = getDistance(long1, long2)
+  return Math.abs(diff - aspectAngle) <= orb
+}
+
+/**
+ * Check if two planets are in conjunction
+ */
+function isConjunction(planet1: PlanetPosition, planet2: PlanetPosition, orb: number = 10): boolean {
+  return getDistance(planet1.longitude, planet2.longitude) <= orb
+}
+
+/**
+ * Check if two planets are in opposition
+ */
+function isOpposition(planet1: PlanetPosition, planet2: PlanetPosition, orb: number = 8): boolean {
+  const diff = getDistance(planet1.longitude, planet2.longitude)
+  return Math.abs(diff - 180) <= orb
+}
+
+/**
+ * Check if two planets are in square aspect
+ */
+function isSquare(planet1: PlanetPosition, planet2: PlanetPosition, orb: number = 8): boolean {
+  const diff = getDistance(planet1.longitude, planet2.longitude)
+  return Math.abs(diff - 90) <= orb
+}
+
+/**
+ * Check if two planets are in trine aspect
+ */
+function isTrine(planet1: PlanetPosition, planet2: PlanetPosition, orb: number = 8): boolean {
+  const diff = getDistance(planet1.longitude, planet2.longitude)
+  return Math.abs(diff - 120) <= orb
+}
+
+/**
+ * Check if two planets are in sextile aspect
+ */
+function isSextile(planet1: PlanetPosition, planet2: PlanetPosition, orb: number = 6): boolean {
+  const diff = getDistance(planet1.longitude, planet2.longitude)
+  return Math.abs(diff - 60) <= orb
+}
+
+/**
+ * Check if two planets are in quincunx aspect
+ */
+function isQuincunx(planet1: PlanetPosition, planet2: PlanetPosition, orb: number = 3): boolean {
+  const diff = getDistance(planet1.longitude, planet2.longitude)
+  return Math.abs(diff - 150) <= orb
+}
+
+/**
+ * Detect Grand Cross pattern (4 planets in square aspects)
+ */
+export function detectGrandCross(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  for (let i = 0; i < planets.length - 3; i++) {
+    for (let j = i + 1; j < planets.length - 2; j++) {
+      for (let k = j + 1; k < planets.length - 1; k++) {
+        for (let l = k + 1; l < planets.length; l++) {
+          const p1 = planets[i]
+          const p2 = planets[j]
+          const p3 = planets[k]
+          const p4 = planets[l]
+
+          if (
+            isSquare(p1, p2) && isSquare(p2, p3) &&
+            isSquare(p3, p4) && isSquare(p4, p1) &&
+            isOpposition(p1, p3) && isOpposition(p2, p4)
+          ) {
+            patterns.push({
+              name: 'Grand Cross',
+              planets: [p1.name, p2.name, p3.name, p4.name],
+              description: 'A powerful configuration of four planets forming a cross of squares and oppositions'
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect T-Square pattern (two planets in opposition, both square to a third)
+ */
+export function detectTSquares(data: BirthChartData): PatternData[] {
+  const patterns: PatternData[] = []
+  const planets = [...data.planets, { name: 'MC', longitude: data.midheaven.longitude }]
+
+  for (let i = 0; i < planets.length - 2; i++) {
+    for (let j = i + 1; j < planets.length - 1; j++) {
+      for (let k = j + 1; k < planets.length; k++) {
+        const p1 = planets[i]
+        const p2 = planets[j]
+        const p3 = planets[k]
+
+        // Check for opposition between p1 and p2, and squares to p3
+        if (
+          isAspect(p1.longitude, p2.longitude, 180, 8) && // Opposition
+          isAspect(p1.longitude, p3.longitude, 90, 8) &&  // Square
+          isAspect(p2.longitude, p3.longitude, 90, 8)     // Square
+        ) {
+          patterns.push({
+            name: 'T-Square',
+            planets: [p1.name, p2.name, p3.name],
+            description: 'A dynamic configuration creating motivation and drive'
+          })
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Grand Trine pattern (3 planets in trine aspects)
+ */
+export function detectGrandTrines(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  for (let i = 0; i < planets.length - 2; i++) {
+    for (let j = i + 1; j < planets.length - 1; j++) {
+      for (let k = j + 1; k < planets.length; k++) {
+        const p1 = planets[i]
+        const p2 = planets[j]
+        const p3 = planets[k]
+
+        if (
+          isTrine(p1, p2) &&
+          isTrine(p2, p3) &&
+          isTrine(p3, p1)
+        ) {
+          patterns.push({
+            name: 'Grand Trine',
+            planets: [p1.name, p2.name, p3.name],
+            description: 'A harmonious triangle of flowing energy'
+          })
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Rectangle pattern (two pairs of planets in opposition, connected by sextiles/trines)
+ */
+export function detectRectangles(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  for (let i = 0; i < planets.length - 3; i++) {
+    for (let j = i + 1; j < planets.length - 2; j++) {
+      for (let k = j + 1; k < planets.length - 1; k++) {
+        for (let l = k + 1; l < planets.length; l++) {
+          const p1 = planets[i]
+          const p2 = planets[j]
+          const p3 = planets[k]
+          const p4 = planets[l]
+
+          // Check for oppositions and sextiles/trines
+          const hasOppositions = (
+            isAspect(p1.longitude, p2.longitude, 180, 8) &&
+            isAspect(p3.longitude, p4.longitude, 180, 8)
+          )
+
+          const hasHarmonicAspects = (
+            (isAspect(p1.longitude, p3.longitude, 60, 6) && isAspect(p2.longitude, p4.longitude, 60, 6)) ||
+            (isAspect(p1.longitude, p3.longitude, 120, 8) && isAspect(p2.longitude, p4.longitude, 120, 8))
+          )
+
+          if (hasOppositions && hasHarmonicAspects) {
+            patterns.push({
+              name: 'Rectangle',
+              planets: [p1.name, p2.name, p3.name, p4.name],
+              description: 'A balanced configuration of oppositions connected by harmonious aspects'
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Yod pattern (two planets in sextile, both quincunx to a third)
+ */
+export function detectYods(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  for (let i = 0; i < planets.length - 2; i++) {
+    for (let j = i + 1; j < planets.length - 1; j++) {
+      for (let k = j + 1; k < planets.length; k++) {
+        const p1 = planets[i]
+        const p2 = planets[j]
+        const p3 = planets[k]
+
+        // Check for sextile between p1 and p2, and quincunxes to p3
+        if (
+          isSextile(p1, p2) &&
+          isQuincunx(p1, p3) &&
+          isQuincunx(p2, p3)
+        ) {
+          patterns.push({
+            name: 'Yod',
+            planets: [p1.name, p2.name, p3.name],
+            description: 'A special configuration suggesting a spiritual mission or purpose'
+          })
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Castle pattern (Grand Trine with additional aspects)
+ */
+export function detectCastles(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  // First, find all Grand Trines
+  const grandTrines = detectGrandTrines(planets)
+
+  for (const trine of grandTrines) {
+    const trinePlanets = trine.planets.map(planetName => 
+      planets.find(p => p.name === planetName) as PlanetPosition & { name: string }
+    )
+
+    // Check for additional sextiles or trines to other planets
+    for (const planet of planets) {
+      if (!trine.planets.includes(planet.name)) {
+        if (
+          isSextile(planet, trinePlanets[0]) || 
+          isTrine(planet, trinePlanets[0]) ||
+          isSextile(planet, trinePlanets[1]) || 
+          isTrine(planet, trinePlanets[1]) ||
+          isSextile(planet, trinePlanets[2]) || 
+          isTrine(planet, trinePlanets[2])
+        ) {
+          patterns.push({
+            name: 'Castle',
+            planets: [...trine.planets, planet.name],
+            description: 'A Grand Trine with extra support and stability from additional harmonious aspects'
+          })
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Cradle pattern (harmonious chain of planets)
+ */
+export function detectCradles(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+  const maxChainSpan = 180 // Maximum angular span for a Cradle
+
+  // Sort planets by longitude
+  const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
+
+  // Look for groups of 4+ planets spanning less than maxChainSpan degrees
+  for (let i = 0; i < planets.length - 3; i++) {
+    for (let j = i + 3; j < planets.length; j++) {
+      const group = sortedPlanets.slice(i, j + 1)
+      const span = getDistance(group[0].longitude, group[group.length - 1].longitude)
+
+      if (span <= maxChainSpan) {
+        // Check for harmonious aspects between consecutive planets
+        let hasHarmoniousChain = true
+        const aspectCount: { [planetName: string]: number } = {} // Track aspects per planet
+
+        for (let k = 0; k < group.length - 1; k++) {
+          const p1 = group[k]
+          const p2 = group[k + 1]
+
+          if (isSextile(p1, p2) || isTrine(p1, p2)) {
+            aspectCount[p1.name] = (aspectCount[p1.name] || 0) + 1
+            aspectCount[p2.name] = (aspectCount[p2.name] || 0) + 1
+          } else {
+            hasHarmoniousChain = false
+            break
+          }
+        }
+
+        // Ensure each planet has exactly two aspects within the Cradle
+        const validAspectCounts = Object.values(aspectCount).every(count => count === 2)
+
+        if (hasHarmoniousChain && validAspectCounts) {
+          patterns.push({
+            name: 'Cradle',
+            planets: group.map(p => p.name),
+            description: 'A harmonious chain of planets forming a cradle shape'
+          })
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Easy Opposition pattern (two planets in opposition with harmonious aspects)
+ */
+export function detectEasyOppositions(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  for (let i = 0; i < planets.length - 1; i++) {
+    for (let j = i + 1; j < planets.length; j++) {
+      const p1 = planets[i]
+      const p2 = planets[j]
+
+      if (isOpposition(p1, p2)) {
+        // Find planets making harmonious aspects to BOTH opposed planets
+        const harmonicPlanets = planets.filter(p3 => {
+          if (p3 === p1 || p3 === p2) return false
+
+          const hasHarmonicAspectToP1 = isSextile(p3, p1) || isTrine(p3, p1)
+          const hasHarmonicAspectToP2 = isSextile(p3, p2) || isTrine(p3, p2)
+
+          return hasHarmonicAspectToP1 && hasHarmonicAspectToP2 
+        })
+
+        if (harmonicPlanets.length > 0) {
+          patterns.push({
+            name: 'Easy Opposition',
+            planets: [p1.name, p2.name, ...harmonicPlanets.map(p => p.name)],
+            description: 'An opposition softened by harmonious aspects'
+          })
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Bundle pattern (planets grouped together)
+ */
+export function detectBundles(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+  const orb = 60 // Maximum span for a bundle (60°)
+  const minPlanets = 4 // Minimum number of planets to form a bundle
+
+  // Sort planets by longitude
+  const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
+  
+  // Find groups of planets within orb
+  for (let i = 0; i < planets.length - (minPlanets - 1); i++) {
+    const bundlePlanets = [sortedPlanets[i]]
+    let maxLong = sortedPlanets[i].longitude
+    let minLong = sortedPlanets[i].longitude
+    
+    for (let j = i + 1; j < planets.length; j++) {
+      const span = getDistance(sortedPlanets[i].longitude, sortedPlanets[j].longitude)
+      if (span <= orb) {
+        bundlePlanets.push(sortedPlanets[j])
+        maxLong = Math.max(maxLong, sortedPlanets[j].longitude)
+        minLong = Math.min(minLong, sortedPlanets[j].longitude)
+      }
+    }
+
+    // Only add bundle if it has enough planets and doesn't overlap with previous bundles
+    if (bundlePlanets.length >= minPlanets && 
+        !patterns.some(p => p.planets.some(name => 
+          bundlePlanets.some(bp => bp.name === name)))) {
+      patterns.push({
+        name: 'Bundle',
+        planets: bundlePlanets.map(p => p.name),
+        description: 'A concentration of planetary energy in a specific area of the chart'
+      })
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Splay pattern (planets spread evenly)
+ */
+export function detectSplays(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
   const patterns: PatternData[] = []
   
   // Sort planets by longitude
@@ -41,10 +440,11 @@ function detectSplay(planets: Array<PlanetPosition & { name: string }>): Pattern
 }
 
 /**
- * Detect Bucket patterns (planets in one area with one planet opposite)
+ * Detect Bucket pattern (planets with one opposite)
  */
-function detectBucket(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+export function detectBuckets(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
   const patterns: PatternData[] = []
+  const minBowlPlanets = 3 // Minimum planets in the "bowl"
   
   // Sort planets by longitude
   const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
@@ -67,11 +467,15 @@ function detectBucket(planets: Array<PlanetPosition & { name: string }>): Patter
   // If the largest gap is around 180 degrees
   if (maxGap >= 150) {
     const handle = sortedPlanets[gapStartIndex]
-    const bowl = sortedPlanets.filter(p => p !== handle)
-    
-    // Check if remaining planets are within 180 degrees
-    const bowlSpread = Math.abs(bowl[bowl.length - 1].longitude - bowl[0].longitude)
-    if (bowlSpread <= 180) {
+    const opposingPlanet = sortedPlanets[(gapStartIndex + 1) % sortedPlanets.length]
+    const midpoint = (handle.longitude + opposingPlanet.longitude) / 2 % 360
+
+    // Find planets within 90 degrees of the midpoint
+    const bowl = sortedPlanets.filter(p => {
+      return p !== handle && p !== opposingPlanet && getDistance(p.longitude, midpoint) <= 90
+    })
+
+    if (bowl.length >= minBowlPlanets) {
       patterns.push({
         name: 'Bucket',
         planets: [handle.name, ...bowl.map(p => p.name)],
@@ -84,346 +488,27 @@ function detectBucket(planets: Array<PlanetPosition & { name: string }>): Patter
 }
 
 /**
- * Detect Grand Cross patterns (4 planets in square aspects)
+ * Detect Splash pattern (planets widely distributed)
  */
-function detectGrandCross(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+export function detectSplashes(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
   const patterns: PatternData[] = []
-
-  for (let i = 0; i < planets.length - 3; i++) {
-    for (let j = i + 1; j < planets.length - 2; j++) {
-      for (let k = j + 1; k < planets.length - 1; k++) {
-        for (let l = k + 1; l < planets.length; l++) {
-          const p1 = planets[i]
-          const p2 = planets[j]
-          const p3 = planets[k]
-          const p4 = planets[l]
-
-          // Check for square aspects between all planets forming a cross
-          if (
-            isInAspect(p1.longitude, p2.longitude, 90, 8) &&
-            isInAspect(p2.longitude, p3.longitude, 90, 8) &&
-            isInAspect(p3.longitude, p4.longitude, 90, 8) &&
-            isInAspect(p4.longitude, p1.longitude, 90, 8) &&
-            isInAspect(p1.longitude, p3.longitude, 180, 8) && // Opposition across the cross
-            isInAspect(p2.longitude, p4.longitude, 180, 8)    // Opposition across the cross
-          ) {
-            patterns.push({
-              name: 'Grand Cross',
-              planets: [p1.name, p2.name, p3.name, p4.name],
-              description: 'A powerful configuration of four planets forming a cross of squares and oppositions'
-            })
-          }
-        }
-      }
-    }
-  }
-
-  return patterns
-}
-
-/**
- * Detect T-Square patterns
- */
-function detectTSquares(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const patterns: PatternData[] = []
-
-  for (let i = 0; i < planets.length - 2; i++) {
-    for (let j = i + 1; j < planets.length - 1; j++) {
-      for (let k = j + 1; k < planets.length; k++) {
-        const p1 = planets[i]
-        const p2 = planets[j]
-        const p3 = planets[k]
-
-        // Check for opposition between p1 and p2, and squares to p3
-        if (
-          isInAspect(p1.longitude, p2.longitude, 180, 8) && // Opposition
-          isInAspect(p1.longitude, p3.longitude, 90, 8) &&  // Square
-          isInAspect(p2.longitude, p3.longitude, 90, 8)     // Square
-        ) {
-          patterns.push({
-            name: 'T-Square',
-            planets: [p1.name, p2.name, p3.name],
-            description: 'A dynamic configuration creating motivation and drive'
-          })
-        }
-      }
-    }
-  }
-
-  return patterns
-}
-
-/**
- * Detect Grand Trine patterns (3 planets in trine aspects)
- */
-function detectGrandTrines(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const patterns: PatternData[] = []
-
-  for (let i = 0; i < planets.length - 2; i++) {
-    for (let j = i + 1; j < planets.length - 1; j++) {
-      for (let k = j + 1; k < planets.length; k++) {
-        const p1 = planets[i]
-        const p2 = planets[j]
-        const p3 = planets[k]
-
-        // Check for trine aspects between all planets
-        if (
-          isInAspect(p1.longitude, p2.longitude, 120, 8) &&
-          isInAspect(p2.longitude, p3.longitude, 120, 8) &&
-          isInAspect(p3.longitude, p1.longitude, 120, 8)
-        ) {
-          patterns.push({
-            name: 'Grand Trine',
-            planets: [p1.name, p2.name, p3.name],
-            description: 'A harmonious triangle of flowing energy'
-          })
-        }
-      }
-    }
-  }
-
-  return patterns
-}
-
-/**
- * Detect Rectangle patterns (two pairs of planets in opposition, connected by sextiles)
- */
-function detectRectangles(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const patterns: PatternData[] = []
-
-  for (let i = 0; i < planets.length - 3; i++) {
-    for (let j = i + 1; j < planets.length - 2; j++) {
-      for (let k = j + 1; k < planets.length - 1; k++) {
-        for (let l = k + 1; l < planets.length; l++) {
-          const p1 = planets[i]
-          const p2 = planets[j]
-          const p3 = planets[k]
-          const p4 = planets[l]
-
-          // Check for oppositions and sextiles/trines
-          if (
-            // First opposition
-            isInAspect(p1.longitude, p2.longitude, 180, 8) &&
-            // Second opposition
-            isInAspect(p3.longitude, p4.longitude, 180, 8) &&
-            // Sextiles or trines connecting the oppositions
-            ((isInAspect(p1.longitude, p3.longitude, 60, 6) && isInAspect(p2.longitude, p4.longitude, 60, 6)) ||
-             (isInAspect(p1.longitude, p3.longitude, 120, 8) && isInAspect(p2.longitude, p4.longitude, 120, 8)))
-          ) {
-            patterns.push({
-              name: 'Rectangle',
-              planets: [p1.name, p2.name, p3.name, p4.name],
-              description: 'A balanced configuration of oppositions connected by harmonious aspects'
-            })
-          }
-        }
-      }
-    }
-  }
-
-  return patterns
-}
-
-/**
- * Detect Castle patterns (grand trine with additional aspects)
- */
-function detectCastles(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const patterns: PatternData[] = []
-
-  // First find grand trines
-  const grandTrines = detectGrandTrines(planets)
-
-  for (const trine of grandTrines) {
-    // For each grand trine, look for additional planets making aspects
-    const trinePlanets = trine.planets.map(name => planets.find(p => p.name === name)!)
-    
-    for (const planet of planets) {
-      if (!trine.planets.includes(planet.name)) {
-        // Check if this planet makes aspects to at least two planets in the grand trine
-        let aspectCount = 0
-        for (const trinePlanet of trinePlanets) {
-          if (isInAspect(planet.longitude, trinePlanet.longitude, 60, 6) ||  // Sextile
-              isInAspect(planet.longitude, trinePlanet.longitude, 90, 8) ||  // Square
-              isInAspect(planet.longitude, trinePlanet.longitude, 120, 8)) { // Trine
-            aspectCount++
-          }
-        }
-        
-        if (aspectCount >= 2) {
-          patterns.push({
-            name: 'Castle',
-            planets: [...trine.planets, planet.name],
-            description: 'A grand trine with additional harmonious aspects'
-          })
-        }
-      }
-    }
-  }
-
-  return patterns
-}
-
-/**
- * Detect Cradle patterns (4+ planets forming a bowl with sextiles and trines)
- */
-function detectCradles(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const patterns: PatternData[] = []
-
-  // Sort planets by longitude
-  const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
+  const numHouses = 12 // Number of houses to divide the chart into
+  const minOccupiedHouses = 10 // Minimum number of houses that must contain planets
   
-  // Look for groups of 4+ planets spanning less than 180 degrees
-  for (let i = 0; i < planets.length - 3; i++) {
-    for (let j = i + 3; j < planets.length; j++) {
-      const group = sortedPlanets.slice(i, j + 1)
-      const span = Math.abs(group[group.length - 1].longitude - group[0].longitude)
-      
-      if (span <= 180) {
-        // Check for harmonious aspects (sextiles and trines) between consecutive planets
-        let hasHarmoniousChain = true
-        for (let k = 0; k < group.length - 1; k++) {
-          const isHarmonious = 
-            isInAspect(group[k].longitude, group[k + 1].longitude, 60, 6) || // Sextile
-            isInAspect(group[k].longitude, group[k + 1].longitude, 120, 8)   // Trine
-          
-          if (!isHarmonious) {
-            hasHarmoniousChain = false
-            break
-          }
-        }
-        
-        if (hasHarmoniousChain) {
-          patterns.push({
-            name: 'Cradle',
-            planets: group.map(p => p.name),
-            description: 'A harmonious chain of planets forming a cradle shape'
-          })
-        }
-      }
-    }
-  }
-
-  return patterns
-}
-
-/**
- * Detect Easy Opposition patterns (planets in opposition with harmonious aspects)
- */
-function detectEasyOpposition(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const patterns: PatternData[] = []
-
-  for (let i = 0; i < planets.length - 1; i++) {
-    for (let j = i + 1; j < planets.length; j++) {
-      const p1 = planets[i]
-      const p2 = planets[j]
-
-      // Check for opposition
-      if (isInAspect(p1.longitude, p2.longitude, 180, 8)) {
-        // Look for planets making harmonious aspects (trine/sextile) to both opposed planets
-        const harmonicPlanets = planets.filter(p3 => {
-          if (p3 === p1 || p3 === p2) return false
-          
-          const hasHarmonicAspectToP1 = 
-            isInAspect(p3.longitude, p1.longitude, 60, 6) ||  // Sextile
-            isInAspect(p3.longitude, p1.longitude, 120, 8)    // Trine
-          
-          const hasHarmonicAspectToP2 = 
-            isInAspect(p3.longitude, p2.longitude, 60, 6) ||  // Sextile
-            isInAspect(p3.longitude, p2.longitude, 120, 8)    // Trine
-          
-          return hasHarmonicAspectToP1 && hasHarmonicAspectToP2
-        })
-
-        if (harmonicPlanets.length > 0) {
-          patterns.push({
-            name: 'Easy Opposition',
-            planets: [p1.name, p2.name, ...harmonicPlanets.map(p => p.name)],
-            description: 'An opposition softened by harmonious aspects'
-          })
-        }
-      }
-    }
-  }
-
-  return patterns
-}
-
-/**
- * Detect Yod patterns (two planets in sextile, both quincunx to a third)
- */
-function detectYods(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const patterns: PatternData[] = []
-
-  for (let i = 0; i < planets.length - 2; i++) {
-    for (let j = i + 1; j < planets.length - 1; j++) {
-      for (let k = j + 1; k < planets.length; k++) {
-        const p1 = planets[i]
-        const p2 = planets[j]
-        const p3 = planets[k]
-
-        // Check for sextile between p1 and p2, and quincunxes to p3
-        if (
-          isInAspect(p1.longitude, p2.longitude, 60, 6) &&   // Sextile
-          isInAspect(p1.longitude, p3.longitude, 150, 6) &&  // Quincunx
-          isInAspect(p2.longitude, p3.longitude, 150, 6)     // Quincunx
-        ) {
-          patterns.push({
-            name: 'Yod',
-            planets: [p1.name, p2.name, p3.name],
-            description: 'A special configuration suggesting a spiritual mission or purpose'
-          })
-        }
-      }
-    }
-  }
-
-  return patterns
-}
-
-/**
- * Detect Bundle patterns (planets grouped together)
- */
-function detectBundle(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const patterns: PatternData[] = []
-  
-  // Sort planets by longitude
-  const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
-  
-  // Calculate total spread
-  const spread = Math.abs(sortedPlanets[sortedPlanets.length - 1].longitude - sortedPlanets[0].longitude)
-  
-  // If all planets are within 120 degrees
-  if (spread <= 120) {
-    patterns.push({
-      name: 'Bundle',
-      planets: sortedPlanets.map(p => p.name),
-      description: 'All planets concentrated within a third of the chart'
-    })
-  }
-  
-  return patterns
-}
-
-/**
- * Detect Splash patterns (planets spread throughout chart)
- */
-function detectSplash(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const patterns: PatternData[] = []
-  
-  // Divide the chart into 12 houses of 30 degrees each
-  const houses = Array(12).fill(0)
+  // Divide the chart into houses of 30 degrees each
+  const houses = Array(numHouses).fill(0)
   
   // Count planets in each house
   planets.forEach(planet => {
-    const house = Math.floor(planet.longitude / 30)
+    const house = Math.floor(planet.longitude / (360 / numHouses))
     houses[house]++
   })
   
   // Count occupied houses
   const occupiedHouses = houses.filter(count => count > 0).length
   
-  // If planets occupy 10 or more houses
-  if (occupiedHouses >= 10) {
+  // If planets occupy minimum required houses
+  if (occupiedHouses >= minOccupiedHouses) {
     patterns.push({
       name: 'Splash',
       planets: planets.map(p => p.name),
@@ -437,14 +522,14 @@ function detectSplash(planets: Array<PlanetPosition & { name: string }>): Patter
 /**
  * Detect special features in the birth chart
  */
-function detectSpecialFeatures(data: BirthChartData): SpecialFeature[] {
+export function detectSpecialFeatures(data: BirthChartData): SpecialFeature[] {
   const features: SpecialFeature[] = []
 
   // Moon phase features
   const sun = data.planets.find(p => p.name === 'Sun')
   const moon = data.planets.find(p => p.name === 'Moon')
   if (sun && moon) {
-    const moonPhaseAngle = Math.abs(moon.longitude - sun.longitude)
+    const moonPhaseAngle = getDistance(moon.longitude, sun.longitude)
     if (moonPhaseAngle < 10) {
       features.push({
         description: 'The moon was a new moon',
@@ -464,86 +549,15 @@ function detectSpecialFeatures(data: BirthChartData): SpecialFeature[] {
     })
   }
 
-  // Check quadrants
-  const bottomRightQuadrant = data.planets.filter(p => {
-    return p.longitude >= 270 && p.longitude < 360
-  })
-  if (bottomRightQuadrant.length === 0) {
-    features.push({
-      description: 'The bottom right quadrant is empty',
-      category: 'chart'
-    })
-  }
-
   // Rising planets
   const risingPlanets = data.planets.filter(p => {
     const ascLong = data.ascendant.longitude
-    return Math.abs(p.longitude - ascLong) <= 10
+    return getDistance(p.longitude, ascLong) <= 10
   }).map(p => p.name)
   if (risingPlanets.length > 0) {
     features.push({
       description: `${risingPlanets.join(', ')} ${risingPlanets.length === 1 ? 'is' : 'are'} rising`,
       category: 'planets'
-    })
-  }
-
-  // Count aspects per planet
-  const moonAspects = data.aspects.filter(a => 
-    a.planet1 === 'Moon' || a.planet2 === 'Moon'
-  )
-  if (moonAspects.length >= 10) {
-    features.push({
-      description: `Moon is in ${moonAspects.length} aspects`,
-      category: 'aspects'
-    })
-  }
-
-  // Chart shape
-  const bundleSpread = Math.max(...data.planets.map(p => p.longitude)) - 
-                      Math.min(...data.planets.map(p => p.longitude))
-  if (bundleSpread <= 120) {
-    features.push({
-      description: 'The chart is a Bundle shape',
-      category: 'chart'
-    })
-  }
-
-  // Dominant mode
-  const cardinalSigns = ['Aries', 'Cancer', 'Libra', 'Capricorn']
-  const cardinalPlanets = data.planets.filter(p => 
-    innerPlanets.includes(p.name) && cardinalSigns.includes(p.sign)
-  )
-  if (cardinalPlanets.length >= 3) {
-    features.push({
-      description: 'The Cardinal mode is dominant among the inner planets',
-      category: 'planets'
-    })
-  }
-
-  // Hemisphere analysis
-  const leftHemispherePlanets = data.planets.filter(p => {
-    const mcLong = data.midheaven.longitude
-    const icLong = (mcLong + 180) % 360
-    return p.longitude >= icLong && p.longitude < mcLong
-  })
-  if (leftHemispherePlanets.length > data.planets.length / 2) {
-    features.push({
-      description: 'Most of the inner planets are located in the left hemisphere, left of the MC-IC axis',
-      category: 'chart'
-    })
-  }
-
-  // Most frequent aspect
-  const aspectCounts: Record<string, number> = {}
-  data.aspects.forEach(a => {
-    aspectCounts[a.aspect] = (aspectCounts[a.aspect] || 0) + 1
-  })
-  const mostFrequentAspect = Object.entries(aspectCounts)
-    .sort(([,a], [,b]) => b - a)[0]
-  if (mostFrequentAspect && mostFrequentAspect[1] >= 5) {
-    features.push({
-      description: `The ${mostFrequentAspect[0]} aspect occurs the most, a total of ${mostFrequentAspect[1]} times`,
-      category: 'aspects'
     })
   }
 
@@ -560,7 +574,6 @@ export function analyzeBirthChart(data: BirthChartData): {
   // Helper function to check if a pattern is unique
   function isUniquePattern(newPattern: PatternData, existingPatterns: PatternData[]): boolean {
     return !existingPatterns.some(existing => {
-      // If same pattern type, check if planets are mostly the same
       if (existing.name === newPattern.name) {
         const commonPlanets = existing.planets.filter(p => newPattern.planets.includes(p))
         return commonPlanets.length >= Math.min(existing.planets.length, newPattern.planets.length) - 1
@@ -583,17 +596,17 @@ export function analyzeBirthChart(data: BirthChartData): {
 
   // Detect patterns in order of priority
   addUniquePatterns(detectGrandCross(data.planets))
-  addUniquePatterns(detectTSquares(data.planets))
+  addUniquePatterns(detectTSquares(data)) // Pass full data object for MC access
   addUniquePatterns(detectGrandTrines(data.planets))
   addUniquePatterns(detectRectangles(data.planets))
+  addUniquePatterns(detectYods(data.planets))
   addUniquePatterns(detectCastles(data.planets))
   addUniquePatterns(detectCradles(data.planets))
-  addUniquePatterns(detectEasyOpposition(data.planets))
-  addUniquePatterns(detectYods(data.planets))
-  addUniquePatterns(detectBundle(data.planets))
-  addUniquePatterns(detectSplay(data.planets))
-  addUniquePatterns(detectBucket(data.planets))
-  addUniquePatterns(detectSplash(data.planets))
+  addUniquePatterns(detectEasyOppositions(data.planets))
+  addUniquePatterns(detectBundles(data.planets))
+  addUniquePatterns(detectSplays(data.planets))
+  addUniquePatterns(detectBuckets(data.planets))
+  addUniquePatterns(detectSplashes(data.planets))
 
   // Sort patterns by type and size
   allPatterns.sort((a, b) => {
@@ -603,10 +616,10 @@ export function analyzeBirthChart(data: BirthChartData): {
       'T-Square': 2,
       'Grand Trine': 3,
       'Rectangle': 4,
-      'Castle': 5,
-      'Cradle': 6,
-      'Easy Opposition': 7,
-      'Yod': 8,
+      'Yod': 5,
+      'Castle': 6,
+      'Cradle': 7,
+      'Easy Opposition': 8,
       'Bundle': 9,
       'Splay': 10,
       'Bucket': 11,

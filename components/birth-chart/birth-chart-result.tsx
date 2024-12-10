@@ -21,6 +21,20 @@ interface BirthChartResultProps {
   onBack: () => void
 }
 
+type PatternType = 'major' | 'minor'
+
+interface Pattern {
+  name: string
+  type: PatternType
+  planets: Array<{
+    name: string
+    sign: ZodiacSign
+    degree: string
+    house?: number
+  }>
+  description: string
+}
+
 export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
   const [personalizedMessage, setPersonalizedMessage] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -193,22 +207,25 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
   }
 
   // Transform patterns data into the format expected by PatternsSection
-  const transformPatterns = () => {
-    return data.patterns.map(pattern => ({
-      name: pattern.name,
-      type: pattern.planets.length > 3 ? 'major' : 'minor',
-      planets: pattern.planets.map(planetName => {
-        const planet = data.planets.find(p => p.name === planetName)!
-        const house = transformPlanets().find(p => p.name === planetName)?.house
-        return {
-          name: planetName,
-          sign: planet.sign,
-          degree: planet.formatted,
-          house
-        }
-      }),
-      description: pattern.description
-    }))
+  const transformPatterns = (): Pattern[] => {
+    return data.patterns.map(pattern => {
+      const patternType: PatternType = pattern.planets.length > 3 ? 'major' : 'minor'
+      return {
+        name: pattern.name,
+        type: patternType,
+        planets: pattern.planets.map(planetName => {
+          const planet = data.planets.find(p => p.name === planetName)!
+          const house = transformPlanets().find(p => p.name === planetName)?.house
+          return {
+            name: planetName,
+            sign: planet.sign,
+            degree: planet.formatted,
+            house
+          }
+        }),
+        description: pattern.description
+      }
+    })
   }
 
   // Transform data for InteractiveWheel

@@ -182,17 +182,12 @@ export function detectRectangles(planets: Array<PlanetPosition & { name: string 
           const p4 = planets[l]
 
           // Check for oppositions and sextiles/trines
-          const hasOppositions = (
-            isAspect(p1.longitude, p2.longitude, 180, 8) &&
-            isAspect(p3.longitude, p4.longitude, 180, 8)
-          )
-
-          const hasHarmonicAspects = (
-            (isAspect(p1.longitude, p3.longitude, 60, 6) && isAspect(p2.longitude, p4.longitude, 60, 6)) ||
-            (isAspect(p1.longitude, p3.longitude, 120, 8) && isAspect(p2.longitude, p4.longitude, 120, 8))
-          )
-
-          if (hasOppositions && hasHarmonicAspects) {
+          if (
+            isOpposition(p1, p2) &&
+            isOpposition(p3, p4) &&
+            ((isSextile(p1, p3) && isSextile(p2, p4) && isTrine(p1, p4) && isTrine(p2, p3)) ||
+             (isTrine(p1, p3) && isTrine(p2, p4) && isSextile(p1, p4) && isSextile(p2, p3))) 
+          ) {
             patterns.push({
               name: 'Rectangle',
               planets: [p1.name, p2.name, p3.name, p4.name],

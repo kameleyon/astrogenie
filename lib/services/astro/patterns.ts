@@ -11,7 +11,7 @@ import { detectGrandTrines } from './patterns/grand-trine'
 import { detectTSquares } from './patterns/t-square'
 
 // Future pattern detectors (commented out until implemented)
-/*
+
 import { detectSplash } from './patterns/splash'
 import { detectSeesaw } from './patterns/seesaw'
 import { detectCradle } from './patterns/cradle'
@@ -41,7 +41,7 @@ import { detectHexagon } from './patterns/hexagon'
 import { detectShield } from './patterns/shield'
 import { detectArrow } from './patterns/arrow'
 import { detectHourglass } from './patterns/hourglass'
-*/
+
 
 /**
  * Analyze birth chart data to detect patterns
@@ -106,7 +106,7 @@ export function analyzeBirthChart(data: BirthChartData): {
   addUniquePatterns(bowls)
 
   // Future pattern detections (commented out until implemented)
-  /*
+  
   const splashes = detectSplash(planetsWithAngles)
   addUniquePatterns(splashes)
 
@@ -193,7 +193,7 @@ export function analyzeBirthChart(data: BirthChartData): {
 
   const hourglasses = detectHourglass(planetsWithAngles)
   addUniquePatterns(hourglasses)
-  */
+  
 
   // Sort patterns by type and size
   allPatterns.sort((a, b) => {

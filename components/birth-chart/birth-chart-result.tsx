@@ -1,13 +1,13 @@
 "use client"
 
+// Previous imports remain exactly the same...
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { InteractiveWheel } from './interactive-wheel'
 import { PlanetsSection } from './planets-section'
 import { HousesSection } from './houses-section'
-import { SpecialFeaturesSection } from './special-features-section'
-import { PatternsSection } from './patterns-section'
+import { ChartPatterns } from './chart-patterns'
 import { PersonalitySnapshot } from './personality-snapshot'
 import { CompatibilitySection } from './compatibility-section'
 import { TransitEffects } from './transit-effects'
@@ -18,20 +18,6 @@ import type { ZodiacSign } from './zodiac-icon'
 interface BirthChartResultProps {
   data: BirthChartData
   onBack: () => void
-}
-
-type PatternType = 'major' | 'minor'
-
-interface Pattern {
-  name: string
-  type: PatternType
-  planets: Array<{
-    name: string
-    sign: ZodiacSign
-    degree: string
-    house?: number
-  }>
-  description: string
 }
 
 export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
@@ -205,28 +191,6 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
     })
   }
 
-  // Transform patterns data into the format expected by PatternsSection
-  const transformPatterns = (): Pattern[] => {
-    return data.patterns.map(pattern => {
-      const patternType: PatternType = pattern.planets.length > 3 ? 'major' : 'minor'
-      return {
-        name: pattern.name,
-        type: patternType,
-        planets: pattern.planets.map(planetName => {
-          const planet = data.planets.find(p => p.name === planetName)!
-          const house = transformPlanets().find(p => p.name === planetName)?.house
-          return {
-            name: planetName,
-            sign: planet.sign,
-            degree: planet.formatted,
-            house
-          }
-        }),
-        description: pattern.description
-      }
-    })
-  }
-
   // Transform data for InteractiveWheel
   const wheelHouses = transformHouses()
   const wheelPlanets = transformPlanets()
@@ -307,6 +271,12 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
               </div>
               <div className="shadow-lg shadow-black/20 rounded-xl">
                 <HousesSection houses={wheelHouses} />
+              </div>
+              <div className="shadow-lg shadow-black/20 rounded-xl">
+                <ChartPatterns 
+                  patterns={data.patterns}
+                  features={data.features || []}
+                />
               </div>
               <div className="shadow-lg shadow-black/20 rounded-xl">
                 <PersonalitySnapshot
@@ -424,9 +394,6 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
                 ]}
                 generalAdvice="Your chart indicates a natural ability to create harmony in relationships, with a particular strength in balancing personal needs with those of others."
               />
-            </div>
-            <div className="shadow-lg shadow-black/20 rounded-xl">
-              <PatternsSection patterns={transformPatterns()} />
             </div>
           </div>
         </div>

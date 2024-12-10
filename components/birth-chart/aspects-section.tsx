@@ -2,10 +2,10 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Aspect } from '@/lib/types/birth-chart'
+import { AspectData } from '../../lib/types/birth-chart'
 
 interface AspectsSectionProps {
-  aspects: Aspect[]
+  aspects: AspectData[]
 }
 
 interface AspectDisplay {

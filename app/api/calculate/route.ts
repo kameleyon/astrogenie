@@ -1,88 +1,56 @@
 import { NextResponse } from 'next/server'
-import { calculateBirthChart } from '@/lib/services/astro/calculator'
+import { calculateBirthChart } from '../../../lib/services/astro/calculator'
 
 export async function POST(request: Request) {
     try {
         // Parse request body
-        let body;
+        let body: {
+            name: string;
+            date: string;
+            time: string;
+            location: string;
+            latitude: number;
+            longitude: number;
+        };
+
         try {
             body = await request.json()
         } catch (error) {
             return NextResponse.json(
-                { error: 'Invalid JSON in request body' },
+                { error: 'Invalid request body' },
                 { status: 400 }
             )
         }
-        
+
         // Validate required fields
         const requiredFields = ['name', 'date', 'time', 'location', 'latitude', 'longitude']
-        const missingFields = requiredFields.filter(field => !(field in body))
-        
-        if (missingFields.length > 0) {
-            return NextResponse.json(
-                { error: `Missing required fields: ${missingFields.join(', ')}` },
-                { status: 400 }
-            )
-        }
-
-        // Validate numeric fields
-        const latitude = parseFloat(body.latitude)
-        const longitude = parseFloat(body.longitude)
-
-        if (isNaN(latitude) || isNaN(longitude)) {
-            return NextResponse.json(
-                { error: 'Latitude and longitude must be valid numbers' },
-                { status: 400 }
-            )
+        for (const field of requiredFields) {
+            if (!(field in body)) {
+                return NextResponse.json(
+                    { error: `Missing required field: ${field}` },
+                    { status: 400 }
+                )
+            }
         }
 
         // Calculate birth chart
-        const birthChart = await calculateBirthChart({
-            name: body.name,
-            date: body.date,
-            time: body.time,
-            location: body.location,
-            latitude,
-            longitude
-        })
+        const birthChartData = await calculateBirthChart(body)
 
-        // Return the calculated birth chart with proper headers
-        return new NextResponse(JSON.stringify(birthChart, null, 2), {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/json; charset=utf-8'
-            }
-        })
-
-    } catch (error: any) {
+        return NextResponse.json(birthChartData)
+    } catch (error) {
         console.error('Error calculating birth chart:', error)
-        
-        // Handle specific error types
-        if (error.message.includes('Invalid date format')) {
+
+        // If error has details property, pass it along
+        if (error instanceof Error && 'details' in error) {
             return NextResponse.json(
-                { error: 'Invalid date format. Use MM/DD/YYYY or YYYY-MM-DD' },
-                { status: 400 }
-            )
-        }
-        
-        if (error.message.includes('Invalid time format')) {
-            return NextResponse.json(
-                { error: 'Invalid time format. Use HH:MM (24-hour format)' },
-                { status: 400 }
+                { error: error.message, details: (error as any).details },
+                { status: 500 }
             )
         }
 
-        // Generic error response
         return NextResponse.json(
-            { error: error.message || 'Error calculating birth chart' },
+            { error: 'Failed to calculate birth chart' },
             { status: 500 }
         )
     }
-}
-
-export async function GET() {
-    return NextResponse.json(
-        { error: 'POST method required' },
-        { status: 405 }
-    )
 }

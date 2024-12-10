@@ -1,7 +1,15 @@
-export type ZodiacSign = 
-  | "Aries" | "Taurus" | "Gemini" | "Cancer"
-  | "Leo" | "Virgo" | "Libra" | "Scorpio"
-  | "Sagittarius" | "Capricorn" | "Aquarius" | "Pisces"
+import { ZodiacSign } from '../../types/birth-chart'
+
+export type { ZodiacSign }
+
+export interface DateTime {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+}
 
 export interface PlanetPosition {
   longitude: number
@@ -9,6 +17,16 @@ export interface PlanetPosition {
   distance: number
   longitude_speed: number
   sign: ZodiacSign
+}
+
+export interface HousePosition {
+  cusp: number
+  sign: ZodiacSign
+}
+
+export interface GeoPosition {
+  latitude: number
+  longitude: number
 }
 
 export interface HouseData {
@@ -45,4 +63,3 @@ export const PLANET_INDICES = {
   Neptune: 8,  // SE_NEPTUNE
   Pluto: 9     // SE_PLUTO
 } as const
-

@@ -1,5 +1,4 @@
-import { PlanetPosition } from './types'
-import { PlanetName } from '@/lib/types/birth-chart'
+import { PlanetPosition, PlanetName } from '../../types/birth-chart'
 
 interface Aspect {
   planet1: string

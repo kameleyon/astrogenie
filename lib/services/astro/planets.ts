@@ -1,6 +1,6 @@
 import moment from 'moment-timezone'
 import tzlookup from 'tz-lookup'
-import { ZodiacSign, PlanetPosition, HouseData, AspectData } from '@/lib/types/birth-chart'
+import { ZodiacSign, PlanetPosition, HouseData } from '../../types/birth-chart'
 
 // Zodiac signs
 const ZODIAC_SIGNS: readonly ZodiacSign[] = [
@@ -32,7 +32,7 @@ function formatDegreeMinute(longitude: number): string {
 /**
  * Get timezone based on coordinates
  */
-function getTimezone(latitude: number, longitude: number): string {
+export function getTimezone(latitude: number, longitude: number): string {
     try {
         const timezone = tzlookup(latitude, longitude)
         if (!timezone) {
@@ -47,38 +47,9 @@ function getTimezone(latitude: number, longitude: number): string {
 }
 
 /**
- * Calculate Julian Day
- */
-async function calculateJulianDay(
-    year: number,
-    month: number,
-    day: number,
-    hour: number,
-    minute: number,
-    second: number,
-    latitude: number,
-    longitude: number
-): Promise<number> {
-    const timezone_str = getTimezone(latitude, longitude)
-    const local_time = moment.tz([year, month - 1, day, hour, minute, second], timezone_str)
-    const utc_time = local_time.clone().utc()
-
-    const swe = await import('swisseph-v2')
-    const jd = swe.swe_julday(
-        utc_time.year(),
-        utc_time.month() + 1,
-        utc_time.date(),
-        utc_time.hours() + utc_time.minutes()/60.0 + utc_time.seconds()/3600.0,
-        swe.SE_GREG_CAL
-    )
-    console.debug(`Julian Day: ${jd}`)
-    return jd
-}
-
-/**
  * Get zodiac sign based on longitude
  */
-function getZodiacSign(longitude: number): ZodiacSign {
+export function getZodiacSign(longitude: number): ZodiacSign {
     const sign_index = Math.floor((longitude % 360) / 30)
     return ZODIAC_SIGNS[sign_index]
 }
@@ -192,47 +163,6 @@ export async function calculateHouses(jd: number, lat: number, lon: number): Pro
     })
 }
 
-/**
- * Calculate aspects between planets
- */
-export function calculateAspects(planetPositions: Record<string, PlanetPosition>): AspectData[] {
-    const aspects: AspectData[] = []
-    const aspectTypes: Record<number, [string, number]> = {
-        0: ["Conjunction", 10],
-        60: ["Sextile", 6],
-        90: ["Square", 10],
-        120: ["Trine", 10],
-        180: ["Opposition", 10]
-    }
-
-    const planets = Object.keys(planetPositions)
-    for (let i = 0; i < planets.length; i++) {
-        for (let j = i + 1; j < planets.length; j++) {
-            const planet1 = planets[i]
-            const planet2 = planets[j]
-            let angle = Math.abs(planetPositions[planet1].longitude - planetPositions[planet2].longitude)
-            angle = Math.min(angle, 360 - angle)  // Consider the shorter arc
-
-            for (const [aspectAngleStr, [aspectName, orb]] of Object.entries(aspectTypes)) {
-                const aspectAngle = Number(aspectAngleStr)
-                if (Math.abs(angle - aspectAngle) <= orb) {
-                    aspects.push({
-                        planet1,
-                        planet2,
-                        aspect: aspectName,
-                        angle: Number(angle.toFixed(2)),
-                        orb: Number(Math.abs(angle - aspectAngle).toFixed(2))
-                    })
-                    break
-                }
-            }
-        }
-    }
-    return aspects
-}
-
 export {
-    calculateJulianDay,
-    getTimezone,
     formatDegreeMinute
 }

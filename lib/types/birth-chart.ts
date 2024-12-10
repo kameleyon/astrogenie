@@ -1,7 +1,31 @@
 export type ZodiacSign = 
-  | "Aries" | "Taurus" | "Gemini" | "Cancer"
-  | "Leo" | "Virgo" | "Libra" | "Scorpio"
-  | "Sagittarius" | "Capricorn" | "Aquarius" | "Pisces"
+  | "Aries" 
+  | "Taurus" 
+  | "Gemini" 
+  | "Cancer"
+  | "Leo" 
+  | "Virgo" 
+  | "Libra" 
+  | "Scorpio"
+  | "Sagittarius" 
+  | "Capricorn" 
+  | "Aquarius" 
+  | "Pisces"
+
+export type PlanetName = 
+  | "Sun"
+  | "Moon"
+  | "Mercury"
+  | "Venus"
+  | "Mars"
+  | "Jupiter"
+  | "Saturn"
+  | "Uranus"
+  | "Neptune"
+  | "Pluto"
+  | "NorthNode"
+  | "SouthNode"
+  | "Chiron"
 
 // Base interface for positions
 export interface Position {
@@ -15,7 +39,9 @@ export interface Position {
 }
 
 // Planet position extends base position
-export interface PlanetPosition extends Position {}
+export interface PlanetPosition extends Position {
+  house?: number;  // Added house property as optional
+}
 
 // House data
 export interface HouseData {

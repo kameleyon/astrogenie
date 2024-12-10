@@ -1,4 +1,5 @@
 import { BirthChartData, PlanetPosition, Position, PatternData, ZodiacSign, HouseData } from '@/lib/types/birth-chart'
+import { analyzeBirthChart } from './patterns'
 
 // Import the pure JavaScript calculations
 const { 
@@ -19,7 +20,6 @@ interface BirthChartInput {
     longitude: number
 }
 
-// Define types for the JavaScript module's return values
 interface JSPlanetData {
     longitude: number
     latitude: number
@@ -147,8 +147,8 @@ export async function calculateBirthChart(input: BirthChartInput): Promise<Birth
             }
         }), {})
 
-        // Return complete birth chart data
-        return {
+        // Create the birth chart data
+        const birthChartData: BirthChartData = {
             name: input.name,
             location: input.location,
             date: input.date,
@@ -156,10 +156,18 @@ export async function calculateBirthChart(input: BirthChartInput): Promise<Birth
             planets,
             houses: typedHouseData,
             aspects,
-            patterns: [], // Aspect patterns will be calculated separately
+            patterns: [],
+            features: [],  // Initialize empty features array
             ascendant,
             midheaven
         }
+
+        // Analyze the chart for patterns and features
+        const { patterns, features } = analyzeBirthChart(birthChartData)
+        birthChartData.patterns = patterns
+        birthChartData.features = features
+
+        return birthChartData
     } catch (error) {
         console.error('Error calculating birth chart:', error)
         throw error

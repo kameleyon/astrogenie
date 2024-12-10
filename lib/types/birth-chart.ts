@@ -40,6 +40,12 @@ export interface PatternData {
   description: string;
 }
 
+// Special feature data
+export interface SpecialFeature {
+  description: string;
+  category: 'moon' | 'planets' | 'chart' | 'aspects';
+}
+
 // Complete birth chart data
 export interface BirthChartData {
   name: string;
@@ -50,6 +56,7 @@ export interface BirthChartData {
   houses: Record<string, HouseData>;
   aspects: AspectData[];
   patterns: PatternData[];
+  features: SpecialFeature[];  // Changed from optional to required
   ascendant: Position;
   midheaven: Position;
 }

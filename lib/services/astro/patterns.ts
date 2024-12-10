@@ -31,13 +31,49 @@ function detectStelliums(planets: Array<PlanetPosition & { name: string }>): Pat
 }
 
 /**
+ * Detect Grand Cross patterns (4 planets in square aspects)
+ */
+function detectGrandCross(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  for (let i = 0; i < planets.length - 3; i++) {
+    for (let j = i + 1; j < planets.length - 2; j++) {
+      for (let k = j + 1; k < planets.length - 1; k++) {
+        for (let l = k + 1; l < planets.length; l++) {
+          const p1 = planets[i]
+          const p2 = planets[j]
+          const p3 = planets[k]
+          const p4 = planets[l]
+
+          // Check for square aspects between all planets
+          if (
+            isInAspect(p1.longitude, p2.longitude, 90, 8) &&
+            isInAspect(p2.longitude, p3.longitude, 90, 8) &&
+            isInAspect(p3.longitude, p4.longitude, 90, 8) &&
+            isInAspect(p4.longitude, p1.longitude, 90, 8)
+          ) {
+            patterns.push({
+              name: 'Grand Cross',
+              planets: [p1.name, p2.name, p3.name, p4.name],
+              description: 'A powerful pattern of four planets forming a cross of squares'
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
  * Detect T-Square patterns
  */
 function detectTSquares(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const tSquares: PatternData[] = []
+  const patterns: PatternData[] = []
 
-  for (let i = 0; i < planets.length; i++) {
-    for (let j = i + 1; j < planets.length; j++) {
+  for (let i = 0; i < planets.length - 2; i++) {
+    for (let j = i + 1; j < planets.length - 1; j++) {
       for (let k = j + 1; k < planets.length; k++) {
         const p1 = planets[i]
         const p2 = planets[j]
@@ -49,7 +85,7 @@ function detectTSquares(planets: Array<PlanetPosition & { name: string }>): Patt
           isInAspect(p1.longitude, p3.longitude, 90, 8) &&  // Square
           isInAspect(p2.longitude, p3.longitude, 90, 8)     // Square
         ) {
-          tSquares.push({
+          patterns.push({
             name: 'T-Square',
             planets: [p1.name, p2.name, p3.name],
             description: 'A dynamic configuration creating motivation and drive'
@@ -59,17 +95,49 @@ function detectTSquares(planets: Array<PlanetPosition & { name: string }>): Patt
     }
   }
 
-  return tSquares
+  return patterns
+}
+
+/**
+ * Detect Grand Trine patterns (3 planets in trine aspects)
+ */
+function detectGrandTrines(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  for (let i = 0; i < planets.length - 2; i++) {
+    for (let j = i + 1; j < planets.length - 1; j++) {
+      for (let k = j + 1; k < planets.length; k++) {
+        const p1 = planets[i]
+        const p2 = planets[j]
+        const p3 = planets[k]
+
+        // Check for trine aspects between all planets
+        if (
+          isInAspect(p1.longitude, p2.longitude, 120, 8) &&
+          isInAspect(p2.longitude, p3.longitude, 120, 8) &&
+          isInAspect(p3.longitude, p1.longitude, 120, 8)
+        ) {
+          patterns.push({
+            name: 'Grand Trine',
+            planets: [p1.name, p2.name, p3.name],
+            description: 'A harmonious triangle of flowing energy'
+          })
+        }
+      }
+    }
+  }
+
+  return patterns
 }
 
 /**
  * Detect Yod patterns (two planets in sextile, both quincunx to a third)
  */
 function detectYods(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const yods: PatternData[] = []
+  const patterns: PatternData[] = []
 
-  for (let i = 0; i < planets.length; i++) {
-    for (let j = i + 1; j < planets.length; j++) {
+  for (let i = 0; i < planets.length - 2; i++) {
+    for (let j = i + 1; j < planets.length - 1; j++) {
       for (let k = j + 1; k < planets.length; k++) {
         const p1 = planets[i]
         const p2 = planets[j]
@@ -81,7 +149,7 @@ function detectYods(planets: Array<PlanetPosition & { name: string }>): PatternD
           isInAspect(p1.longitude, p3.longitude, 150, 6) &&  // Quincunx
           isInAspect(p2.longitude, p3.longitude, 150, 6)     // Quincunx
         ) {
-          yods.push({
+          patterns.push({
             name: 'Yod',
             planets: [p1.name, p2.name, p3.name],
             description: 'A special configuration suggesting a spiritual mission or purpose'
@@ -91,7 +159,96 @@ function detectYods(planets: Array<PlanetPosition & { name: string }>): PatternD
     }
   }
 
-  return yods
+  return patterns
+}
+
+/**
+ * Detect Bucket pattern (planets in one area with one planet opposite)
+ */
+function detectBucket(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+  
+  // Sort planets by longitude
+  const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
+  
+  // Find the largest gap between consecutive planets
+  let maxGap = 0
+  let gapStart = 0
+  
+  for (let i = 0; i < sortedPlanets.length; i++) {
+    const current = sortedPlanets[i].longitude
+    const next = sortedPlanets[(i + 1) % sortedPlanets.length].longitude
+    const gap = next > current ? next - current : (360 - current) + next
+    
+    if (gap > maxGap) {
+      maxGap = gap
+      gapStart = i
+    }
+  }
+  
+  // If the largest gap is around 180 degrees and one planet is isolated
+  if (maxGap >= 150) {
+    const handle = sortedPlanets[gapStart]
+    const bowl = sortedPlanets.filter(p => p !== handle)
+    
+    patterns.push({
+      name: 'Bucket',
+      planets: [handle.name, ...bowl.map(p => p.name)],
+      description: `A concentration of planets with ${handle.name} as the handle`
+    })
+  }
+  
+  return patterns
+}
+
+/**
+ * Detect Seesaw pattern (planets split into two groups)
+ */
+function detectSeesaw(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+  
+  // Sort planets by longitude
+  const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
+  
+  // Find two largest gaps
+  let gaps: { start: number, size: number }[] = []
+  
+  for (let i = 0; i < sortedPlanets.length; i++) {
+    const current = sortedPlanets[i].longitude
+    const next = sortedPlanets[(i + 1) % sortedPlanets.length].longitude
+    const gap = next > current ? next - current : (360 - current) + next
+    
+    gaps.push({ start: i, size: gap })
+  }
+  
+  gaps.sort((a, b) => b.size - a.size)
+  
+  // If we have two large gaps roughly opposite each other
+  if (gaps[0].size >= 60 && gaps[1].size >= 60) {
+    const group1: string[] = []
+    const group2: string[] = []
+    let inGroup1 = true
+    
+    for (let i = 0; i < sortedPlanets.length; i++) {
+      if (i === gaps[0].start || i === gaps[1].start) {
+        inGroup1 = !inGroup1
+      }
+      
+      if (inGroup1) {
+        group1.push(sortedPlanets[i].name)
+      } else {
+        group2.push(sortedPlanets[i].name)
+      }
+    }
+    
+    patterns.push({
+      name: 'Seesaw',
+      planets: [...group1, ...group2],
+      description: 'Planets divided into two distinct groups'
+    })
+  }
+  
+  return patterns
 }
 
 /**
@@ -220,8 +377,12 @@ export function analyzeBirthChart(data: BirthChartData): {
   // Detect all patterns
   const patterns = [
     ...detectStelliums(data.planets),
+    ...detectGrandCross(data.planets),
     ...detectTSquares(data.planets),
-    ...detectYods(data.planets)
+    ...detectGrandTrines(data.planets),
+    ...detectYods(data.planets),
+    ...detectBucket(data.planets),
+    ...detectSeesaw(data.planets)
   ]
 
   // Detect special features

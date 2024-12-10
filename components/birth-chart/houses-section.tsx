@@ -37,6 +37,10 @@ export function HousesSection({ houses }: HousesSectionProps) {
     return titles[number as keyof typeof titles] || `House ${number}`
   }
 
+  // Split houses into two columns
+  const leftColumnHouses = houses.slice(0, 6)
+  const rightColumnHouses = houses.slice(6)
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -45,41 +49,72 @@ export function HousesSection({ houses }: HousesSectionProps) {
       className="bg-white/5 backdrop-blur-sm rounded-xl p-6 space-y-4"
     >
       <h2 className="text-lg font-futura text-gray-900 dark:text-white">Houses</h2>
-      <div className="space-y-4">
-        {houses.map((house) => (
-          <div key={house.number} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <span className="text-[#D15200] dark:text-[#FFA600] font-medium text-sm">
-                  {house.number}° House
-                </span>
-                <span className="text-gray-500 dark:text-gray-400 text-sm">
+      <div className="grid grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-4">
+          {leftColumnHouses.map((house) => (
+            <div key={house.number} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-[#D15200] dark:text-[#FFA600] font-medium text-sm">
+                    {house.number}° House
+                  </span>
+                </div>
+              </div>
+              <div className="pl-4 space-y-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
                   {getHouseTitle(house.number)}
-                </span>
+                </div>
+                <div className="text-sm text-gray-900 dark:text-white">
+                  {house.sign} {house.degree}
+                </div>
+                {house.ruler && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Ruled by {house.ruler}
+                  </div>
+                )}
+                {house.containingPlanets && house.containingPlanets.length > 0 && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Planets: {house.containingPlanets.join(", ")}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="pl-4 space-y-1">
-              <div className="text-sm text-gray-900 dark:text-white">
-                {house.sign} {house.degree}
+          ))}
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-4">
+          {rightColumnHouses.map((house) => (
+            <div key={house.number} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-[#D15200] dark:text-[#FFA600] font-medium text-sm">
+                    {house.number}° House
+                  </span>
+                </div>
               </div>
-              {house.ruler && (
+              <div className="pl-4 space-y-1">
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Ruled by {house.ruler}
+                  {getHouseTitle(house.number)}
                 </div>
-              )}
-              {house.containingPlanets && house.containingPlanets.length > 0 && (
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Planets: {house.containingPlanets.join(", ")}
+                <div className="text-sm text-gray-900 dark:text-white">
+                  {house.sign} {house.degree}
                 </div>
-              )}
-              {house.description && (
-                <div className="text-xs text-gray-600 dark:text-gray-300 mt-2">
-                  {house.description}
-                </div>
-              )}
+                {house.ruler && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Ruled by {house.ruler}
+                  </div>
+                )}
+                {house.containingPlanets && house.containingPlanets.length > 0 && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Planets: {house.containingPlanets.join(", ")}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* House Patterns */}

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { InteractiveWheel } from './interactive-wheel'
 import { PlanetsSection } from './planets-section'
 import { HousesSection } from './houses-section'
-import { AspectsSection } from './aspects-section'
 import { SpecialFeaturesSection } from './special-features-section'
 import { PatternsSection } from './patterns-section'
 import { PersonalitySnapshot } from './personality-snapshot'
@@ -295,9 +294,6 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
             <div className="shadow-lg shadow-black/20 rounded-xl">
               <PlanetsSection planets={wheelPlanets} />
             </div>
-            <div className="shadow-lg shadow-black/20 rounded-xl">
-              <HousesSection houses={wheelHouses} />
-            </div>
           </div>
 
           {/* Center Column */}
@@ -308,6 +304,9 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
                   houses={wheelHouses}
                   planets={wheelPlanets}
                 />
+              </div>
+              <div className="shadow-lg shadow-black/20 rounded-xl">
+                <HousesSection houses={wheelHouses} />
               </div>
               <div className="shadow-lg shadow-black/20 rounded-xl">
                 <PersonalitySnapshot
@@ -340,9 +339,6 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
                     mutable: toPercentage(5)
                   }}
                 />
-              </div>
-              <div className="shadow-lg shadow-black/20 rounded-xl">
-                <AspectsSection aspects={data.aspects} />
               </div>
             </div>
           </div>

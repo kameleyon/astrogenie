@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { Card } from "@/components/ui/card"
+import { Card } from '@/components/ui/card'
 import { generateWelcomeMessage } from '@/lib/services/openrouter'
 import { BirthChartData } from '@/lib/types/birth-chart'
 
@@ -17,7 +17,7 @@ export function WelcomeMessage({ name, data }: WelcomeMessageProps) {
   // Get Sun, Moon, and Ascendant signs
   const sunPlanet = data.planets.find(p => p.name === 'Sun')
   const moonPlanet = data.planets.find(p => p.name === 'Moon')
-  const ascSign = data.houses[0]?.sign // First house cusp is the Ascendant
+  const ascSign = data.ascendant.sign
 
   useEffect(() => {
     async function generateMessage() {
@@ -65,13 +65,13 @@ export function WelcomeMessage({ name, data }: WelcomeMessageProps) {
       ) : (
         <div className="space-y-4">
           <h2 className="text-2xl font-futura">
-            Hello, {name}! 👋
+            Hello, {name}
           </h2>
           <div className="prose dark:prose-invert max-w-none">
-            <p className="text-base leading-relaxed">
-              Welcome to your personalized birth chart! Your chart shows a fascinating blend of energies, with your {sunPlanet?.sign} Sun, {moonPlanet?.sign} Moon, and {ascSign} Ascendant creating a unique cosmic signature.
+            <p className="text-sm leading-relaxed">
+          Hey there! We're excited to share your personal birth chart with you! Looking at your cosmic blueprint, we can see an amazing combination of {sunPlanet?.sign} Sun vibes, {moonPlanet?.sign} Moon energy, and a {ascSign} Ascendant that makes you totally unique. Let's dive into what makes your astrological DNA so special!
             </p>
-            <p className="text-base leading-relaxed">
+            <p className="text-sm leading-relaxed">
               {message}
             </p>
           </div>

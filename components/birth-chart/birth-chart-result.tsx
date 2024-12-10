@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { InteractiveWheel } from './interactive-wheel'
@@ -13,6 +13,7 @@ import { PersonalitySnapshot } from './personality-snapshot'
 import { CompatibilitySection } from './compatibility-section'
 import { TransitEffects } from './transit-effects'
 import { WelcomeMessage } from './welcome-message'
+import { generateWithOpenRouter } from '@/lib/services/openrouter'
 import type { BirthChartData } from '@/lib/types/birth-chart'
 import type { ZodiacSign } from './zodiac-icon'
 
@@ -21,46 +22,38 @@ interface BirthChartResultProps {
   onBack: () => void
 }
 
-// Component interfaces
-interface ComponentPlanet {
-  name: string
-  sign: ZodiacSign
-  degree: string
-  house: number
-  retrograde?: boolean
-  aspects?: Array<{
-    planet: string
-    type: string
-    degree: string
-  }>
-}
-
-interface ComponentPattern {
-  name: string
-  type: 'major' | 'minor'
-  planets: Array<{
-    name: string
-    sign: ZodiacSign
-    degree: string
-    house?: number
-  }>
-  description: string
-  interpretation?: string
-  elements?: {
-    fire?: number
-    earth?: number
-    air?: number
-    water?: number
-  }
-  qualities?: {
-    cardinal?: number
-    fixed?: number
-    mutable?: number
-  }
-  houses?: number[]
-}
-
 export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
+  const [risingSignDescription, setRisingSignDescription] = useState<string>('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadRisingSignDescription() {
+      try {
+        const prompt = `Generate a concise interpretation of ${data.ascendant.sign} Rising (Ascendant) in a birth chart.
+
+The interpretation should:
+1. Describe how this rising sign influences first impressions and the way others perceive them
+2. Explain their natural approach to new situations and environments
+3. Highlight key personality traits and mannerisms associated with this rising sign
+4. Keep the tone professional yet accessible
+5. Be concise and focused (2-3 sentences)
+6. Avoid technical jargon
+
+Format as a single, flowing paragraph focused on the immediate impact of this rising sign.`
+
+        const description = await generateWithOpenRouter(prompt)
+        setRisingSignDescription(description)
+      } catch (error) {
+        console.error('Error generating rising sign description:', error)
+        setRisingSignDescription('Your rising sign shapes how others perceive you and your natural approach to new situations.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadRisingSignDescription()
+  }, [data.ascendant.sign])
+
   // Convert numbers to percentage strings
   const toPercentage = (value: number) => `${(value * 10)}%`
 
@@ -133,7 +126,6 @@ export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
       retrograde: false
     }
 
-    // Return all planets plus ASC and MC
     return [...planetData, ascendant, midheaven]
   }
 
@@ -169,7 +161,7 @@ export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
   }
 
   // Transform patterns data into the format expected by PatternsSection
-  const transformPatterns = (): ComponentPattern[] => {
+  const transformPatterns = () => {
     return data.patterns.map(pattern => ({
       name: pattern.name,
       type: pattern.planets.length > 3 ? 'major' : 'minor',
@@ -241,6 +233,23 @@ export function BirthChartResult({ data, onBack }: BirthChartResultProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column */}
           <div className="lg:col-span-3 space-y-6 order-3 lg:order-1">
+            {/* Rising Sign Section */}
+            <div className="shadow-lg shadow-black/20 rounded-xl">
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6">
+                <h2 className="text-lg font-futura text-gray-900 dark:text-white mb-2">Rising Sign</h2>
+                {loading ? (
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    {risingSignDescription}
+                  </p>
+                )}
+              </div>
+            </div>
+            {/* Planets Section */}
             <div className="shadow-lg shadow-black/20 rounded-xl">
               <PlanetsSection planets={wheelPlanets} />
             </div>

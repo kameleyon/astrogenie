@@ -64,6 +64,20 @@ export function isQuincunx(planet1: PlanetPosition, planet2: PlanetPosition, orb
 }
 
 /**
+ * Check if two planets are in sesquiquadrate aspect (135 degrees)
+ */
+export function isSesquiquadrate(planet1: PlanetPosition, planet2: PlanetPosition, orb: number = 3): boolean {
+  return isAspect(planet1.longitude, planet2.longitude, 135, orb);
+}
+
+/**
+ * Check if two planets are in quintile aspect (72 degrees)
+ */
+export function isQuintile(planet1: PlanetPosition, planet2: PlanetPosition, orb: number = 2): boolean {
+  return isAspect(planet1.longitude, planet2.longitude, 72, orb);
+}
+
+/**
  * Convert planet position to pattern planet data
  */
 export function toPlanetData(planet: PlanetPosition & { name: string }): PatternPlanetData {

@@ -1,4 +1,4 @@
-const {
+import {
     getTimezone,
     calculateJulianDay,
     calculateSunSign,
@@ -7,9 +7,9 @@ const {
     calculatePlanetPositions,
     calculateHouses,
     calculateAspects
-} = require('./calculations')
+} from './calculations'
 
-const { PlanetPosition, HouseData, AspectData } = require('./types')
+import type { PlanetPosition, HouseData, AspectData } from './types'
 
 async function testCalculations() {
     try {
@@ -67,7 +67,7 @@ async function testCalculations() {
         console.log('\nCalculating planetary positions...')
         const positions = await calculatePlanetPositions(jd) as Record<string, PlanetPosition>
         console.log('\nPlanetary Positions:')
-        Object.entries(positions).forEach(([planet, data]: [string, PlanetPosition]) => {
+        Object.entries(positions).forEach(([planet, data]) => {
             console.log(`${planet}: ${data.longitude.toFixed(2)}° ${data.sign} ${data.longitude_speed < 0 ? '(R)' : ''}`)
         })
 
@@ -82,7 +82,7 @@ async function testCalculations() {
                 const numB = parseInt(b[0].split('_')[1])
                 return numA - numB
             })
-            .forEach(([house, data]: [string, HouseData]) => {
+            .forEach(([house, data]) => {
                 console.log(`${house}: ${data.cusp.toFixed(2)}° ${data.sign}`)
             })
 
@@ -91,8 +91,8 @@ async function testCalculations() {
         const aspects = calculateAspects(positions)
         console.log('\nMajor Aspects:')
         aspects
-            .sort((a: AspectData, b: AspectData) => a.orb - b.orb)
-            .forEach((aspect: AspectData) => {
+            .sort((a, b) => a.orb - b.orb)
+            .forEach((aspect) => {
                 console.log(`${aspect.planet1} ${aspect.aspect} ${aspect.planet2} (orb: ${aspect.orb}°)`)
             })
 

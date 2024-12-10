@@ -1,5 +1,6 @@
-import { BirthChartData, PlanetPosition, Position, PatternData, ZodiacSign, HouseData } from '@/lib/types/birth-chart'
+import { BirthChartData, PlanetPosition, Position, PatternData, ZodiacSign, HouseData } from '../../../lib/types/birth-chart'
 import { analyzeBirthChart } from './patterns'
+import { analyzeSpecialFeatures } from './features'
 
 // Import the pure JavaScript calculations
 const { 
@@ -162,10 +163,16 @@ export async function calculateBirthChart(input: BirthChartInput): Promise<Birth
             midheaven
         }
 
-        // Analyze the chart for patterns and features
-        const { patterns, features } = analyzeBirthChart(birthChartData)
+        // Analyze the chart for patterns
+        const { patterns } = analyzeBirthChart(birthChartData)
         birthChartData.patterns = patterns
-        birthChartData.features = features
+
+        // Analyze the chart for special features
+        birthChartData.features = analyzeSpecialFeatures(birthChartData)
+
+        // Add debug logging
+        console.debug('Detected patterns:', patterns)
+        console.debug('Detected features:', birthChartData.features)
 
         return birthChartData
     } catch (error) {

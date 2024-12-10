@@ -33,10 +33,18 @@ export interface AspectData {
   orb: number;
 }
 
+// Pattern planet data
+export interface PatternPlanetData {
+  name: string;
+  sign: ZodiacSign;
+  degree: string;
+  longitude: number;
+}
+
 // Pattern data
 export interface PatternData {
   name: string;
-  planets: string[];
+  planets: PatternPlanetData[];
   description: string;
 }
 

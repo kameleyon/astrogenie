@@ -21,7 +21,22 @@ interface PlanetsSectionProps {
   planets: Planet[]
 }
 
+const AspectSymbols = {
+  conjunction: { symbol: '☌', color: 'text-red-500' },
+  opposition: { symbol: '☍', color: 'text-red-500' },
+  trine: { symbol: '△', color: 'text-green-500' },
+  square: { symbol: '□', color: 'text-red-500' },
+  sextile: { symbol: '⚹', color: 'text-green-500' }
+} as const
+
+type AspectType = keyof typeof AspectSymbols
+
 export function PlanetsSection({ planets }: PlanetsSectionProps) {
+  const getAspectSymbol = (type: string) => {
+    const aspectType = type.toLowerCase() as AspectType
+    return AspectSymbols[aspectType] || { symbol: '•', color: 'text-gray-500' }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -54,16 +69,19 @@ export function PlanetsSection({ planets }: PlanetsSectionProps) {
             )}
             {planet.aspects && planet.aspects.length > 0 && (
               <div className="pl-4 space-y-1">
-                {planet.aspects.map((aspect, index) => (
-                  <div 
-                    key={`${planet.name}-${aspect.planet}-${index}`}
-                    className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-2"
-                  >
-                    <span>{aspect.type}</span>
-                    <span>{aspect.planet}</span>
-                    <span>({aspect.degree}°)</span>
-                  </div>
-                ))}
+                {planet.aspects.map((aspect, index) => {
+                  const { symbol, color } = getAspectSymbol(aspect.type)
+                  return (
+                    <div 
+                      key={`${planet.name}-${aspect.planet}-${index}`}
+                      className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-2"
+                    >
+                      <span className={color}>{symbol}</span>
+                      <span>{aspect.planet}</span>
+                      <span>({aspect.degree}°)</span>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

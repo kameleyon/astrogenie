@@ -7,27 +7,80 @@ interface SpecialFeature {
 }
 
 /**
- * Detect stellium patterns (3 or more planets in the same sign)
+ * Detect Splay patterns (planets spread out evenly)
  */
-function detectStelliums(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
-  const planetsBySign: Record<string, string[]> = {}
+function detectSplay(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
   
-  // Group planets by sign
-  planets.forEach(planet => {
-    if (!planetsBySign[planet.sign]) {
-      planetsBySign[planet.sign] = []
-    }
-    planetsBySign[planet.sign].push(planet.name)
-  })
+  // Sort planets by longitude
+  const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
+  
+  // Calculate gaps between consecutive planets
+  const gaps: number[] = []
+  for (let i = 0; i < sortedPlanets.length; i++) {
+    const current = sortedPlanets[i].longitude
+    const next = sortedPlanets[(i + 1) % sortedPlanets.length].longitude
+    const gap = next > current ? next - current : (360 - current) + next
+    gaps.push(gap)
+  }
+  
+  // Calculate mean and standard deviation of gaps
+  const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length
+  const stdDev = Math.sqrt(gaps.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / gaps.length)
+  
+  // If standard deviation is low (gaps are relatively even) and planets span most of the chart
+  if (stdDev < 20 && gaps.length >= 5) {
+    patterns.push({
+      name: 'Splay',
+      planets: sortedPlanets.map(p => p.name),
+      description: 'Planets spread evenly around the chart'
+    })
+  }
+  
+  return patterns
+}
 
-  // Find groups of 3 or more planets
-  return Object.entries(planetsBySign)
-    .filter(([_, planets]) => planets.length >= 3)
-    .map(([sign, planets]) => ({
-      name: 'Stellium',
-      planets,
-      description: `A powerful concentration of planetary energy in ${sign}`
-    }))
+/**
+ * Detect Bucket patterns (planets in one area with one planet opposite)
+ */
+function detectBucket(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+  
+  // Sort planets by longitude
+  const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
+  
+  // Find the largest gap between consecutive planets
+  let maxGap = 0
+  let gapStartIndex = 0
+  
+  for (let i = 0; i < sortedPlanets.length; i++) {
+    const current = sortedPlanets[i].longitude
+    const next = sortedPlanets[(i + 1) % sortedPlanets.length].longitude
+    const gap = next > current ? next - current : (360 - current) + next
+    
+    if (gap > maxGap) {
+      maxGap = gap
+      gapStartIndex = i
+    }
+  }
+  
+  // If the largest gap is around 180 degrees
+  if (maxGap >= 150) {
+    const handle = sortedPlanets[gapStartIndex]
+    const bowl = sortedPlanets.filter(p => p !== handle)
+    
+    // Check if remaining planets are within 180 degrees
+    const bowlSpread = Math.abs(bowl[bowl.length - 1].longitude - bowl[0].longitude)
+    if (bowlSpread <= 180) {
+      patterns.push({
+        name: 'Bucket',
+        planets: [handle.name, ...bowl.map(p => p.name)],
+        description: `A concentration of planets with ${handle.name} as the handle`
+      })
+    }
+  }
+  
+  return patterns
 }
 
 /**
@@ -45,17 +98,19 @@ function detectGrandCross(planets: Array<PlanetPosition & { name: string }>): Pa
           const p3 = planets[k]
           const p4 = planets[l]
 
-          // Check for square aspects between all planets
+          // Check for square aspects between all planets forming a cross
           if (
             isInAspect(p1.longitude, p2.longitude, 90, 8) &&
             isInAspect(p2.longitude, p3.longitude, 90, 8) &&
             isInAspect(p3.longitude, p4.longitude, 90, 8) &&
-            isInAspect(p4.longitude, p1.longitude, 90, 8)
+            isInAspect(p4.longitude, p1.longitude, 90, 8) &&
+            isInAspect(p1.longitude, p3.longitude, 180, 8) && // Opposition across the cross
+            isInAspect(p2.longitude, p4.longitude, 180, 8)    // Opposition across the cross
           ) {
             patterns.push({
               name: 'Grand Cross',
               planets: [p1.name, p2.name, p3.name, p4.name],
-              description: 'A powerful pattern of four planets forming a cross of squares'
+              description: 'A powerful configuration of four planets forming a cross of squares and oppositions'
             })
           }
         }
@@ -131,6 +186,169 @@ function detectGrandTrines(planets: Array<PlanetPosition & { name: string }>): P
 }
 
 /**
+ * Detect Rectangle patterns (two pairs of planets in opposition, connected by sextiles)
+ */
+function detectRectangles(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  for (let i = 0; i < planets.length - 3; i++) {
+    for (let j = i + 1; j < planets.length - 2; j++) {
+      for (let k = j + 1; k < planets.length - 1; k++) {
+        for (let l = k + 1; l < planets.length; l++) {
+          const p1 = planets[i]
+          const p2 = planets[j]
+          const p3 = planets[k]
+          const p4 = planets[l]
+
+          // Check for oppositions and sextiles/trines
+          if (
+            // First opposition
+            isInAspect(p1.longitude, p2.longitude, 180, 8) &&
+            // Second opposition
+            isInAspect(p3.longitude, p4.longitude, 180, 8) &&
+            // Sextiles or trines connecting the oppositions
+            ((isInAspect(p1.longitude, p3.longitude, 60, 6) && isInAspect(p2.longitude, p4.longitude, 60, 6)) ||
+             (isInAspect(p1.longitude, p3.longitude, 120, 8) && isInAspect(p2.longitude, p4.longitude, 120, 8)))
+          ) {
+            patterns.push({
+              name: 'Rectangle',
+              planets: [p1.name, p2.name, p3.name, p4.name],
+              description: 'A balanced configuration of oppositions connected by harmonious aspects'
+            })
+          }
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Castle patterns (grand trine with additional aspects)
+ */
+function detectCastles(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  // First find grand trines
+  const grandTrines = detectGrandTrines(planets)
+
+  for (const trine of grandTrines) {
+    // For each grand trine, look for additional planets making aspects
+    const trinePlanets = trine.planets.map(name => planets.find(p => p.name === name)!)
+    
+    for (const planet of planets) {
+      if (!trine.planets.includes(planet.name)) {
+        // Check if this planet makes aspects to at least two planets in the grand trine
+        let aspectCount = 0
+        for (const trinePlanet of trinePlanets) {
+          if (isInAspect(planet.longitude, trinePlanet.longitude, 60, 6) ||  // Sextile
+              isInAspect(planet.longitude, trinePlanet.longitude, 90, 8) ||  // Square
+              isInAspect(planet.longitude, trinePlanet.longitude, 120, 8)) { // Trine
+            aspectCount++
+          }
+        }
+        
+        if (aspectCount >= 2) {
+          patterns.push({
+            name: 'Castle',
+            planets: [...trine.planets, planet.name],
+            description: 'A grand trine with additional harmonious aspects'
+          })
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Cradle patterns (4+ planets forming a bowl with sextiles and trines)
+ */
+function detectCradles(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  // Sort planets by longitude
+  const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
+  
+  // Look for groups of 4+ planets spanning less than 180 degrees
+  for (let i = 0; i < planets.length - 3; i++) {
+    for (let j = i + 3; j < planets.length; j++) {
+      const group = sortedPlanets.slice(i, j + 1)
+      const span = Math.abs(group[group.length - 1].longitude - group[0].longitude)
+      
+      if (span <= 180) {
+        // Check for harmonious aspects (sextiles and trines) between consecutive planets
+        let hasHarmoniousChain = true
+        for (let k = 0; k < group.length - 1; k++) {
+          const isHarmonious = 
+            isInAspect(group[k].longitude, group[k + 1].longitude, 60, 6) || // Sextile
+            isInAspect(group[k].longitude, group[k + 1].longitude, 120, 8)   // Trine
+          
+          if (!isHarmonious) {
+            hasHarmoniousChain = false
+            break
+          }
+        }
+        
+        if (hasHarmoniousChain) {
+          patterns.push({
+            name: 'Cradle',
+            planets: group.map(p => p.name),
+            description: 'A harmonious chain of planets forming a cradle shape'
+          })
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
+ * Detect Easy Opposition patterns (planets in opposition with harmonious aspects)
+ */
+function detectEasyOpposition(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+  const patterns: PatternData[] = []
+
+  for (let i = 0; i < planets.length - 1; i++) {
+    for (let j = i + 1; j < planets.length; j++) {
+      const p1 = planets[i]
+      const p2 = planets[j]
+
+      // Check for opposition
+      if (isInAspect(p1.longitude, p2.longitude, 180, 8)) {
+        // Look for planets making harmonious aspects (trine/sextile) to both opposed planets
+        const harmonicPlanets = planets.filter(p3 => {
+          if (p3 === p1 || p3 === p2) return false
+          
+          const hasHarmonicAspectToP1 = 
+            isInAspect(p3.longitude, p1.longitude, 60, 6) ||  // Sextile
+            isInAspect(p3.longitude, p1.longitude, 120, 8)    // Trine
+          
+          const hasHarmonicAspectToP2 = 
+            isInAspect(p3.longitude, p2.longitude, 60, 6) ||  // Sextile
+            isInAspect(p3.longitude, p2.longitude, 120, 8)    // Trine
+          
+          return hasHarmonicAspectToP1 && hasHarmonicAspectToP2
+        })
+
+        if (harmonicPlanets.length > 0) {
+          patterns.push({
+            name: 'Easy Opposition',
+            planets: [p1.name, p2.name, ...harmonicPlanets.map(p => p.name)],
+            description: 'An opposition softened by harmonious aspects'
+          })
+        }
+      }
+    }
+  }
+
+  return patterns
+}
+
+/**
  * Detect Yod patterns (two planets in sextile, both quincunx to a third)
  */
 function detectYods(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
@@ -163,38 +381,23 @@ function detectYods(planets: Array<PlanetPosition & { name: string }>): PatternD
 }
 
 /**
- * Detect Bucket pattern (planets in one area with one planet opposite)
+ * Detect Bundle patterns (planets grouped together)
  */
-function detectBucket(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+function detectBundle(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
   const patterns: PatternData[] = []
   
   // Sort planets by longitude
   const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
   
-  // Find the largest gap between consecutive planets
-  let maxGap = 0
-  let gapStart = 0
+  // Calculate total spread
+  const spread = Math.abs(sortedPlanets[sortedPlanets.length - 1].longitude - sortedPlanets[0].longitude)
   
-  for (let i = 0; i < sortedPlanets.length; i++) {
-    const current = sortedPlanets[i].longitude
-    const next = sortedPlanets[(i + 1) % sortedPlanets.length].longitude
-    const gap = next > current ? next - current : (360 - current) + next
-    
-    if (gap > maxGap) {
-      maxGap = gap
-      gapStart = i
-    }
-  }
-  
-  // If the largest gap is around 180 degrees and one planet is isolated
-  if (maxGap >= 150) {
-    const handle = sortedPlanets[gapStart]
-    const bowl = sortedPlanets.filter(p => p !== handle)
-    
+  // If all planets are within 120 degrees
+  if (spread <= 120) {
     patterns.push({
-      name: 'Bucket',
-      planets: [handle.name, ...bowl.map(p => p.name)],
-      description: `A concentration of planets with ${handle.name} as the handle`
+      name: 'Bundle',
+      planets: sortedPlanets.map(p => p.name),
+      description: 'All planets concentrated within a third of the chart'
     })
   }
   
@@ -202,49 +405,29 @@ function detectBucket(planets: Array<PlanetPosition & { name: string }>): Patter
 }
 
 /**
- * Detect Seesaw pattern (planets split into two groups)
+ * Detect Splash patterns (planets spread throughout chart)
  */
-function detectSeesaw(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
+function detectSplash(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
   const patterns: PatternData[] = []
   
-  // Sort planets by longitude
-  const sortedPlanets = [...planets].sort((a, b) => a.longitude - b.longitude)
+  // Divide the chart into 12 houses of 30 degrees each
+  const houses = Array(12).fill(0)
   
-  // Find two largest gaps
-  let gaps: { start: number, size: number }[] = []
+  // Count planets in each house
+  planets.forEach(planet => {
+    const house = Math.floor(planet.longitude / 30)
+    houses[house]++
+  })
   
-  for (let i = 0; i < sortedPlanets.length; i++) {
-    const current = sortedPlanets[i].longitude
-    const next = sortedPlanets[(i + 1) % sortedPlanets.length].longitude
-    const gap = next > current ? next - current : (360 - current) + next
-    
-    gaps.push({ start: i, size: gap })
-  }
+  // Count occupied houses
+  const occupiedHouses = houses.filter(count => count > 0).length
   
-  gaps.sort((a, b) => b.size - a.size)
-  
-  // If we have two large gaps roughly opposite each other
-  if (gaps[0].size >= 60 && gaps[1].size >= 60) {
-    const group1: string[] = []
-    const group2: string[] = []
-    let inGroup1 = true
-    
-    for (let i = 0; i < sortedPlanets.length; i++) {
-      if (i === gaps[0].start || i === gaps[1].start) {
-        inGroup1 = !inGroup1
-      }
-      
-      if (inGroup1) {
-        group1.push(sortedPlanets[i].name)
-      } else {
-        group2.push(sortedPlanets[i].name)
-      }
-    }
-    
+  // If planets occupy 10 or more houses
+  if (occupiedHouses >= 10) {
     patterns.push({
-      name: 'Seesaw',
-      planets: [...group1, ...group2],
-      description: 'Planets divided into two distinct groups'
+      name: 'Splash',
+      planets: planets.map(p => p.name),
+      description: 'Planets widely distributed throughout the chart'
     })
   }
   
@@ -374,19 +557,71 @@ export function analyzeBirthChart(data: BirthChartData): {
   patterns: PatternData[]
   features: SpecialFeature[]
 } {
+  // Helper function to check if a pattern is unique
+  function isUniquePattern(newPattern: PatternData, existingPatterns: PatternData[]): boolean {
+    return !existingPatterns.some(existing => {
+      // If same pattern type, check if planets are mostly the same
+      if (existing.name === newPattern.name) {
+        const commonPlanets = existing.planets.filter(p => newPattern.planets.includes(p))
+        return commonPlanets.length >= Math.min(existing.planets.length, newPattern.planets.length) - 1
+      }
+      return false
+    })
+  }
+
   // Detect all patterns
-  const patterns = [
-    ...detectStelliums(data.planets),
-    ...detectGrandCross(data.planets),
-    ...detectTSquares(data.planets),
-    ...detectGrandTrines(data.planets),
-    ...detectYods(data.planets),
-    ...detectBucket(data.planets),
-    ...detectSeesaw(data.planets)
-  ]
+  let allPatterns: PatternData[] = []
+  
+  // Detect each type of pattern and only add if unique
+  const addUniquePatterns = (newPatterns: PatternData[]) => {
+    newPatterns.forEach(pattern => {
+      if (isUniquePattern(pattern, allPatterns)) {
+        allPatterns.push(pattern)
+      }
+    })
+  }
+
+  // Detect patterns in order of priority
+  addUniquePatterns(detectGrandCross(data.planets))
+  addUniquePatterns(detectTSquares(data.planets))
+  addUniquePatterns(detectGrandTrines(data.planets))
+  addUniquePatterns(detectRectangles(data.planets))
+  addUniquePatterns(detectCastles(data.planets))
+  addUniquePatterns(detectCradles(data.planets))
+  addUniquePatterns(detectEasyOpposition(data.planets))
+  addUniquePatterns(detectYods(data.planets))
+  addUniquePatterns(detectBundle(data.planets))
+  addUniquePatterns(detectSplay(data.planets))
+  addUniquePatterns(detectBucket(data.planets))
+  addUniquePatterns(detectSplash(data.planets))
+
+  // Sort patterns by type and size
+  allPatterns.sort((a, b) => {
+    // First sort by pattern type priority
+    const patternPriority = {
+      'Grand Cross': 1,
+      'T-Square': 2,
+      'Grand Trine': 3,
+      'Rectangle': 4,
+      'Castle': 5,
+      'Cradle': 6,
+      'Easy Opposition': 7,
+      'Yod': 8,
+      'Bundle': 9,
+      'Splay': 10,
+      'Bucket': 11,
+      'Splash': 12
+    }
+    const priorityDiff = (patternPriority[a.name as keyof typeof patternPriority] || 99) -
+                        (patternPriority[b.name as keyof typeof patternPriority] || 99)
+    if (priorityDiff !== 0) return priorityDiff
+
+    // Then sort by number of planets involved (more planets first)
+    return b.planets.length - a.planets.length
+  })
 
   // Detect special features
   const features = detectSpecialFeatures(data)
 
-  return { patterns, features }
+  return { patterns: allPatterns, features }
 }

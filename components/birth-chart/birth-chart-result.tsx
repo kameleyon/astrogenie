@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { InteractiveWheel } from './interactive-wheel'
 import { PlanetsSection } from './planets-section'
 import { HousesSection } from './houses-section'
-import { ChartPatterns } from './chart-patterns'
-import { PersonalitySnapshot } from './personality-snapshot'
+//import { ChartPatterns } from './chart-patterns'
+//import { PersonalitySnapshot } from './personality-snapshot'
 import { CompatibilitySection } from './compatibility-section'
 import { TransitEffects } from './transit-effects'
 import { generateWithOpenRouter } from '@/lib/services/openrouter'
@@ -236,24 +236,10 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
           {/* Left Column */}
           <div className="lg:col-span-3 space-y-6 order-3 lg:order-1">
-            {/* Personalized Message Section */}
-            <div className="shadow-lg shadow-black/20 rounded-xl">
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6">
-                <h2 className="text-lg font-futura text-gray-900 dark:text-white mb-2">Your Cosmic Blueprint</h2>
-                {loading ? (
-                  <div className="animate-pulse">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    {personalizedMessage}
-                  </p>
-                )}
-              </div>
-            </div>
+            
             {/* Planets Section */}
             <div className="shadow-lg shadow-black/20 rounded-xl">
               <PlanetsSection planets={wheelPlanets} />
@@ -269,47 +255,27 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
                   planets={wheelPlanets}
                 />
               </div>
+              {/* Personalized Message Section */}
+            <div className="shadow-lg shadow-black/20 rounded-xl">
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6">
+                <h2 className="text-lg font-futura text-gray-900 dark:text-white mb-2">Your Cosmic Blueprint</h2>
+                {loading ? (
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    {personalizedMessage}
+                  </p>
+                )}
+              </div>
+            </div>
               <div className="shadow-lg shadow-black/20 rounded-xl">
                 <HousesSection houses={wheelHouses} />
               </div>
-              <div className="shadow-lg shadow-black/20 rounded-xl">
-                <ChartPatterns 
-                  patterns={data.patterns}
-                  features={data.features || []}
-                />
-              </div>
-              <div className="shadow-lg shadow-black/20 rounded-xl">
-                <PersonalitySnapshot
-                  traits={[
-                    {
-                      title: "Leadership Style",
-                      description: "Diplomatic and balanced with a strong drive for justice",
-                      influence: "Sun",
-                      strength: "strong",
-                      keywords: ["fair-minded", "harmonious", "idealistic"]
-                    },
-                    {
-                      title: "Emotional Nature",
-                      description: "Deep, intense, and transformative",
-                      influence: "Moon",
-                      strength: "strong",
-                      keywords: ["passionate", "perceptive", "resourceful"]
-                    }
-                  ]}
-                  summary="Your chart shows a fascinating blend of diplomatic Air energy and intense Water influence, creating a personality that combines social grace with emotional depth."
-                  dominantElements={{
-                    fire: toPercentage(3),
-                    earth: toPercentage(2),
-                    air: toPercentage(2),
-                    water: toPercentage(3)
-                  }}
-                  dominantQualities={{
-                    cardinal: toPercentage(3),
-                    fixed: toPercentage(2),
-                    mutable: toPercentage(5)
-                  }}
-                />
-              </div>
+             
+              
             </div>
           </div>
 

@@ -7,28 +7,29 @@
   NEXT_PUBLIC_SITE_URL = "https://astrogenie.netlify.app"
   NODE_VERSION = "18"
   NPM_VERSION = "9"
-  # Enable native module builds
   ENABLE_NATIVE_MODULES = "true"
-  # Use system GLIBC
   LD_LIBRARY_PATH = "/usr/lib64"
-  # Ensure Swiss Ephemeris files are available
   SWISSEPH_PATH = "/opt/build/repo/ephe"
-  # Force installation of optional dependencies
   NPM_CONFIG_OPTIONAL = "false"
+  NODE_ENV = "production"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  # Increase timeout for functions that perform heavy calculations
   node_bundler = "esbuild"
-  external_node_modules = ["swisseph-v2", "swisseph"]
-  included_files = ["ephe/*"]
+  external_node_modules = [
+    "swisseph-v2",
+    "swisseph"
+  ]
+  included_files = ["ephe/*.se1"]
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[functions.___netlify-server-handler]
+  maxDuration = 30
+
+[functions."next_api_calculate"]
+  included_files = ["ephe/*.se1"]
+  external_node_modules = ["swisseph-v2", "swisseph"]
 
 [[headers]]
   for = "/api/*"
@@ -36,15 +37,6 @@
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type"
-
-[context.production]
-  environment = { NODE_ENV = "production" }
-
-[context.deploy-preview]
-  environment = { NODE_ENV = "production" }
-
-[context.branch-deploy]
-  environment = { NODE_ENV = "production" }
 
 [dev]
   framework = "next"

@@ -1,16 +1,13 @@
-import { BirthChartData, PlanetPosition, Position, PatternData, ZodiacSign, HouseData } from '../../../lib/types/birth-chart'
+import { BirthChartData, PlanetPosition, Position, PatternData, ZodiacSign, HouseData, PlanetName } from '../../../lib/types/birth-chart'
 import { analyzeBirthChart } from './patterns'
 import { analyzeSpecialFeatures } from './features'
-
-// Import the pure JavaScript calculations
-const { 
-    getTimezone,
-    calculateJulianDay,
-    calculatePlanetPositions,
-    calculateAscendant,
+import { 
+    getTimezone, 
+    calculatePlanetPositions, 
     calculateHouses,
-    calculateAspects
-} = require('./pure-calculations.js')
+    HOUSE_SYSTEMS
+} from './planets'
+import { calculateAspects } from './aspects'
 
 interface BirthChartInput {
     name: string
@@ -19,21 +16,7 @@ interface BirthChartInput {
     location: string
     latitude: number
     longitude: number
-}
-
-interface JSPlanetData {
-    longitude: number
-    latitude: number
-    distance: number
-    longitude_speed: number
-    sign: string
-    formatted: string
-}
-
-interface JSHouseData {
-    cusp: number
-    sign: string
-    formatted: string
+    houseSystem?: keyof typeof HOUSE_SYSTEMS
 }
 
 /**
@@ -49,14 +32,23 @@ function parseDate(dateStr: string): { year: number; month: number; day: number 
         if (dateStr.includes('/')) {
             // MM/DD/YYYY format
             const [month, day, year] = parts
+            if (isNaN(month) || isNaN(day) || isNaN(year) || 
+                month < 1 || month > 12 || day < 1 || day > 31 || year < 1) {
+                throw new Error('Invalid date values')
+            }
             return { year, month, day }
         } else {
             // YYYY-MM-DD format
             const [year, month, day] = parts
+            if (isNaN(month) || isNaN(day) || isNaN(year) || 
+                month < 1 || month > 12 || day < 1 || day > 31 || year < 1) {
+                throw new Error('Invalid date values')
+            }
             return { year, month, day }
         }
-    } catch (error) {
-        throw new Error('Invalid date format. Use MM/DD/YYYY or YYYY-MM-DD')
+    } catch (err) {
+        const error = err as Error
+        throw new Error(`Invalid date format (${error.message || 'Unknown error'}). Use MM/DD/YYYY or YYYY-MM-DD`)
     }
 }
 
@@ -67,11 +59,55 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
     try {
         const [hour, minute] = timeStr.split(':').map(Number)
         if (isNaN(hour) || isNaN(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-            throw new Error('Invalid time')
+            throw new Error('Invalid time values')
         }
         return { hour, minute }
-    } catch (error) {
-        throw new Error('Invalid time format. Use HH:MM (24-hour format)')
+    } catch (err) {
+        const error = err as Error
+        throw new Error(`Invalid time format (${error.message || 'Unknown error'}). Use HH:MM (24-hour format)`)
+    }
+}
+
+/**
+ * Calculate Julian Day
+ */
+function calculateJulianDay(
+    year: number,
+    month: number,
+    day: number,
+    hour: number,
+    minute: number,
+    second: number,
+    latitude: number,
+    longitude: number
+): number {
+    try {
+        const timezone = getTimezone(latitude, longitude)
+        const moment = require('moment-timezone')
+        const swe = require('swisseph-v2')
+
+        const local_time = moment.tz([year, month - 1, day, hour, minute, second], timezone)
+        if (!local_time.isValid()) {
+            throw new Error('Invalid date/time combination')
+        }
+
+        const utc_time = local_time.clone().utc()
+        const jd = swe.swe_julday(
+            utc_time.year(),
+            utc_time.month() + 1,
+            utc_time.date(),
+            utc_time.hours() + utc_time.minutes()/60.0 + utc_time.seconds()/3600.0,
+            swe.SE_GREG_CAL
+        )
+
+        if (isNaN(jd)) {
+            throw new Error('Julian Day calculation failed')
+        }
+
+        return jd
+    } catch (err) {
+        const error = err as Error
+        throw new Error(`Julian Day calculation failed: ${error.message || 'Unknown error'}`)
     }
 }
 
@@ -80,6 +116,13 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
  */
 export async function calculateBirthChart(input: BirthChartInput): Promise<BirthChartData> {
     try {
+        // Validate input coordinates
+        if (isNaN(input.latitude) || isNaN(input.longitude) ||
+            input.latitude < -90 || input.latitude > 90 ||
+            input.longitude < -180 || input.longitude > 180) {
+            throw new Error('Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180')
+        }
+
         // Parse date and time
         const { year, month, day } = parseDate(input.date)
         const { hour, minute } = parseTime(input.time)
@@ -96,14 +139,16 @@ export async function calculateBirthChart(input: BirthChartInput): Promise<Birth
             input.longitude
         )
 
-        // Calculate planet positions
-        const positions = await calculatePlanetPositions(jd) as Record<string, JSPlanetData>
+        // Calculate planet positions with Swiss Ephemeris
+        const positions = await calculatePlanetPositions(jd)
 
-        // Calculate house data
-        const houseData = await calculateHouses(jd, input.latitude, input.longitude) as Record<string, JSHouseData>
-
-        // Calculate aspects between planets
-        const aspects = calculateAspects(positions)
+        // Calculate house data with specified or default house system
+        const houseData = await calculateHouses(
+            jd, 
+            input.latitude, 
+            input.longitude,
+            input.houseSystem || 'PLACIDUS'
+        )
 
         // Transform planet positions into array format with required properties
         const planets: Array<PlanetPosition & { name: string }> = Object.entries(positions).map(([name, data]) => ({
@@ -111,11 +156,28 @@ export async function calculateBirthChart(input: BirthChartInput): Promise<Birth
             longitude: data.longitude,
             latitude: data.latitude,
             distance: data.distance,
-            longitudeSpeed: data.longitude_speed,
+            longitudeSpeed: data.longitudeSpeed,
             sign: data.sign as ZodiacSign,
-            retrograde: data.longitude_speed < 0,
+            retrograde: data.retrograde,
             formatted: data.formatted
         }))
+
+        // Transform planets array into record for aspect calculation
+        const planetRecord: Record<PlanetName, PlanetPosition> = planets.reduce((acc, planet) => ({
+            ...acc,
+            [planet.name as PlanetName]: {
+                longitude: planet.longitude,
+                latitude: planet.latitude,
+                distance: planet.distance,
+                longitudeSpeed: planet.longitudeSpeed,
+                sign: planet.sign,
+                retrograde: planet.retrograde,
+                formatted: planet.formatted
+            }
+        }), {} as Record<PlanetName, PlanetPosition>)
+
+        // Calculate aspects between planets
+        const aspects = calculateAspects(planetRecord)
 
         // Create position objects for ascendant and midheaven
         const ascendant: Position = {
@@ -158,7 +220,7 @@ export async function calculateBirthChart(input: BirthChartInput): Promise<Birth
             houses: typedHouseData,
             aspects,
             patterns: [],
-            features: [],  // Initialize empty features array
+            features: [],
             ascendant,
             midheaven
         }
@@ -170,13 +232,9 @@ export async function calculateBirthChart(input: BirthChartInput): Promise<Birth
         // Analyze the chart for special features
         birthChartData.features = analyzeSpecialFeatures(birthChartData)
 
-        // Add debug logging
-        console.debug('Detected patterns:', patterns)
-        console.debug('Detected features:', birthChartData.features)
-
         return birthChartData
-    } catch (error) {
-        console.error('Error calculating birth chart:', error)
-        throw error
+    } catch (err) {
+        const error = err as Error
+        throw new Error(`Birth chart calculation failed: ${error.message || 'Unknown error'}`)
     }
 }

@@ -1,7 +1,7 @@
 import { BirthChartData, PatternData, PlanetPosition } from '../../../lib/types/birth-chart'
 import { isUniquePattern } from './patterns/utils'
 
-// Import existing pattern detectors
+// Import all pattern detectors
 import { detectBucket } from './patterns/bucket'
 import { detectBowl } from './patterns/bowl'
 import { detectBundle } from './patterns/bundle'
@@ -9,9 +9,6 @@ import { detectLocomotive } from './patterns/locomotive'
 import { detectGrandCross } from './patterns/grand-cross'
 import { detectGrandTrines } from './patterns/grand-trine'
 import { detectTSquares } from './patterns/t-square'
-
-// Future pattern detectors (commented out until implemented)
-
 import { detectSplash } from './patterns/splash'
 import { detectSeesaw } from './patterns/seesaw'
 import { detectCradle } from './patterns/cradle'
@@ -42,6 +39,48 @@ import { detectShield } from './patterns/shield'
 import { detectArrow } from './patterns/arrow'
 import { detectHourglass } from './patterns/hourglass'
 
+/**
+ * Validate planet position data
+ */
+function validatePlanetPosition(planet: PlanetPosition & { name: string }): void {
+  if (!planet) {
+    throw new Error('Invalid planet data: planet is undefined')
+  }
+  if (!planet.name) {
+    throw new Error('Invalid planet data: missing name')
+  }
+  if (typeof planet.longitude !== 'number' || isNaN(planet.longitude)) {
+    throw new Error(`Invalid planet data: invalid longitude for ${planet.name}`)
+  }
+  if (typeof planet.latitude !== 'number' || isNaN(planet.latitude)) {
+    throw new Error(`Invalid planet data: invalid latitude for ${planet.name}`)
+  }
+  if (!planet.sign) {
+    throw new Error(`Invalid planet data: missing sign for ${planet.name}`)
+  }
+}
+
+/**
+ * Validate birth chart data
+ */
+function validateBirthChartData(data: BirthChartData): void {
+  if (!data) {
+    throw new Error('Birth chart data is undefined')
+  }
+
+  if (!Array.isArray(data.planets)) {
+    throw new Error('Invalid birth chart data: planets array is missing')
+  }
+
+  if (!data.ascendant || !data.midheaven) {
+    throw new Error('Invalid birth chart data: missing ascendant or midheaven')
+  }
+
+  // Validate each planet position
+  data.planets.forEach(validatePlanetPosition)
+  validatePlanetPosition({ ...data.ascendant, name: 'ASC' })
+  validatePlanetPosition({ ...data.midheaven, name: 'MC' })
+}
 
 /**
  * Analyze birth chart data to detect patterns
@@ -50,207 +89,151 @@ export function analyzeBirthChart(data: BirthChartData): {
   patterns: PatternData[]
   features: []  // Empty array since we're not handling features here
 } {
-  console.debug('Starting pattern analysis...')
+  try {
+    console.debug('Starting pattern analysis...')
 
-  // Include Midheaven and Ascendant in the planet list for pattern detection
-  const planetsWithAngles = [
-    ...data.planets,
-    { ...data.midheaven, name: 'MC' },
-    { ...data.ascendant, name: 'ASC' }
-  ]
+    // Validate input data
+    validateBirthChartData(data)
 
-  console.debug('Available points:', planetsWithAngles.map(p => `${p.name} at ${p.formatted} ${p.sign}`))
+    // Include all points in pattern detection
+    const planetsWithAngles = [
+      ...data.planets,
+      { ...data.midheaven, name: 'MC' },
+      { ...data.ascendant, name: 'ASC' }
+    ]
 
-  // Detect all patterns
-  let allPatterns: PatternData[] = []
-  
-  // Helper function to add unique patterns
-  const addUniquePatterns = (newPatterns: PatternData[]) => {
-    newPatterns.forEach(pattern => {
-      if (isUniquePattern(pattern, allPatterns)) {
-        console.debug(`Adding unique pattern: ${pattern.name} with planets ${pattern.planets.map(p => p.name).join(', ')}`)
-        allPatterns.push(pattern)
-      } else {
-        console.debug(`Skipping duplicate pattern: ${pattern.name} with planets ${pattern.planets.map(p => p.name).join(', ')}`)
+    console.debug('Available points:', planetsWithAngles.map(p => `${p.name} at ${p.formatted} ${p.sign}`))
+
+    // Detect all patterns
+    let allPatterns: PatternData[] = []
+    
+    // Helper function to safely detect patterns
+    const safeDetectPatterns = (
+      detector: (planets: Array<PlanetPosition & { name: string }>) => PatternData[],
+      patternName: string
+    ) => {
+      try {
+        const patterns = detector(planetsWithAngles)
+        console.debug(`Found ${patterns.length} ${patternName} patterns`)
+        return patterns
+      } catch (err) {
+        const error = err as Error
+        console.warn(`Error detecting ${patternName} patterns:`, error.message)
+        return []
       }
-    })
-  }
-
-  // Detect patterns in order of priority
-  const grandCrosses = detectGrandCross(planetsWithAngles)
-  console.debug(`Found ${grandCrosses.length} Grand Cross patterns`)
-  addUniquePatterns(grandCrosses)
-
-  const tSquares = detectTSquares(planetsWithAngles)
-  console.debug(`Found ${tSquares.length} T-Square patterns`)
-  addUniquePatterns(tSquares)
-
-  const grandTrines = detectGrandTrines(planetsWithAngles)
-  console.debug(`Found ${grandTrines.length} Grand Trine patterns`)
-  addUniquePatterns(grandTrines)
-
-  const buckets = detectBucket(planetsWithAngles)
-  console.debug(`Found ${buckets.length} Bucket patterns`)
-  addUniquePatterns(buckets)
-
-  const bundles = detectBundle(planetsWithAngles)
-  console.debug(`Found ${bundles.length} Bundle patterns`)
-  addUniquePatterns(bundles)
-
-  const locomotives = detectLocomotive(planetsWithAngles)
-  console.debug(`Found ${locomotives.length} Locomotive patterns`)
-  addUniquePatterns(locomotives)
-
-  const bowls = detectBowl(planetsWithAngles)
-  console.debug(`Found ${bowls.length} Bowl patterns`)
-  addUniquePatterns(bowls)
-
-  // Future pattern detections (commented out until implemented)
-  
-  const splashes = detectSplash(planetsWithAngles)
-  addUniquePatterns(splashes)
-
-  const seesaws = detectSeesaw(planetsWithAngles)
-  addUniquePatterns(seesaws)
-
-  const cradles = detectCradle(planetsWithAngles)
-  addUniquePatterns(cradles)
-
-  const kites = detectKite(planetsWithAngles)
-  addUniquePatterns(kites)
-
-  const mysticRectangles = detectMysticRectangle(planetsWithAngles)
-  addUniquePatterns(mysticRectangles)
-
-  const rectangles = detectRectangle(planetsWithAngles)
-  addUniquePatterns(rectangles)
-
-  const yods = detectYod(planetsWithAngles)
-  addUniquePatterns(yods)
-
-  const stelliums = detectStellium(planetsWithAngles)
-  addUniquePatterns(stelliums)
-
-  const hammersOfThor = detectHammerOfThor(planetsWithAngles)
-  addUniquePatterns(hammersOfThor)
-
-  const starsOfDavid = detectStarOfDavid(planetsWithAngles)
-  addUniquePatterns(starsOfDavid)
-
-  const doubleTSquares = detectDoubleTSquare(planetsWithAngles)
-  addUniquePatterns(doubleTSquares)
-
-  const grandSextiles = detectGrandSextile(planetsWithAngles)
-  addUniquePatterns(grandSextiles)
-
-  const wedges = detectWedge(planetsWithAngles)
-  addUniquePatterns(wedges)
-
-  const castles = detectCastle(planetsWithAngles)
-  addUniquePatterns(castles)
-
-  const trapezoids = detectTrapezoid(planetsWithAngles)
-  addUniquePatterns(trapezoids)
-
-  const pentagrams = detectPentagram(planetsWithAngles)
-  addUniquePatterns(pentagrams)
-
-  const grandQuintiles = detectGrandQuintile(planetsWithAngles)
-  addUniquePatterns(grandQuintiles)
-
-  const rosettas = detectRosetta(planetsWithAngles)
-  addUniquePatterns(rosettas)
-
-  const boomerangYods = detectBoomerangYod(planetsWithAngles)
-  addUniquePatterns(boomerangYods)
-
-  const arrowheads = detectArrowhead(planetsWithAngles)
-  addUniquePatterns(arrowheads)
-
-  const stars = detectStar(planetsWithAngles)
-  addUniquePatterns(stars)
-
-  const crossbows = detectCrossbow(planetsWithAngles)
-  addUniquePatterns(crossbows)
-
-  const butterflies = detectButterfly(planetsWithAngles)
-  addUniquePatterns(butterflies)
-
-  const baskets = detectBasket(planetsWithAngles)
-  addUniquePatterns(baskets)
-
-  const diamonds = detectDiamond(planetsWithAngles)
-  addUniquePatterns(diamonds)
-
-  const hexagons = detectHexagon(planetsWithAngles)
-  addUniquePatterns(hexagons)
-
-  const shields = detectShield(planetsWithAngles)
-  addUniquePatterns(shields)
-
-  const arrows = detectArrow(planetsWithAngles)
-  addUniquePatterns(arrows)
-
-  const hourglasses = detectHourglass(planetsWithAngles)
-  addUniquePatterns(hourglasses)
-  
-
-  // Sort patterns by type and size
-  allPatterns.sort((a, b) => {
-    // First sort by pattern type priority
-    const patternPriority = {
-      'Grand Cross': 1,
-      'T-Square': 2,
-      'Grand Trine': 3,
-      'Bucket': 4,
-      'Bundle': 5,
-      'Locomotive': 6,
-      'Bowl': 7,
-      'Splash': 8,
-      'Seesaw': 9,
-      'Cradle': 10,
-      'Kite': 11,
-      'Mystic Rectangle': 12,
-      'Rectangle': 13,
-      'Yod': 14,  // Also known as Finger of God
-      'Stellium': 15,
-      'Hammer of Thor': 16,  // Also known as Thor's Hammer
-      'Star of David': 17,
-      'Double T-Square': 18,
-      'Grand Sextile': 19,
-      'Wedge': 20,
-      'Castle': 21,
-      'Trapezoid': 22,
-      'Pentagram': 23,
-      'Grand Quintile': 24,
-      'Rosetta': 25,
-      'Boomerang Yod': 26,
-      'Arrowhead': 27,
-      'Star': 28,
-      'Crossbow': 29,
-      'Butterfly': 30,
-      'Basket': 31,
-      'Diamond': 32,
-      'Hexagon': 33,
-      'Shield': 34,
-      'Arrow': 35,
-      'Hourglass': 36
     }
-    const priorityDiff = (patternPriority[a.name as keyof typeof patternPriority] || 99) -
-                        (patternPriority[b.name as keyof typeof patternPriority] || 99)
-    if (priorityDiff !== 0) return priorityDiff
 
-    // Then sort by number of planets involved (more planets first)
-    return b.planets.length - a.planets.length
-  })
+    // Helper function to add unique patterns
+    const addUniquePatterns = (newPatterns: PatternData[]) => {
+      newPatterns.forEach(pattern => {
+        if (isUniquePattern(pattern, allPatterns)) {
+          console.debug(`Adding unique pattern: ${pattern.name} with planets ${pattern.planets.map(p => p.name).join(', ')}`)
+          allPatterns.push(pattern)
+        } else {
+          console.debug(`Skipping duplicate pattern: ${pattern.name} with planets ${pattern.planets.map(p => p.name).join(', ')}`)
+        }
+      })
+    }
 
-  console.debug('Final patterns:', allPatterns.map(p => ({
-    name: p.name,
-    planets: p.planets.map(planet => `${planet.name} at ${planet.degree} ${planet.sign}`).join(', ')
-  })))
+    // Detect patterns in order of priority
+    addUniquePatterns(safeDetectPatterns(detectGrandCross, 'Grand Cross'))
+    addUniquePatterns(safeDetectPatterns(detectTSquares, 'T-Square'))
+    addUniquePatterns(safeDetectPatterns(detectGrandTrines, 'Grand Trine'))
+    addUniquePatterns(safeDetectPatterns(detectBucket, 'Bucket'))
+    addUniquePatterns(safeDetectPatterns(detectBundle, 'Bundle'))
+    addUniquePatterns(safeDetectPatterns(detectLocomotive, 'Locomotive'))
+    addUniquePatterns(safeDetectPatterns(detectBowl, 'Bowl'))
+    addUniquePatterns(safeDetectPatterns(detectSplash, 'Splash'))
+    addUniquePatterns(safeDetectPatterns(detectSeesaw, 'Seesaw'))
+    addUniquePatterns(safeDetectPatterns(detectCradle, 'Cradle'))
+    addUniquePatterns(safeDetectPatterns(detectKite, 'Kite'))
+    addUniquePatterns(safeDetectPatterns(detectMysticRectangle, 'Mystic Rectangle'))
+    addUniquePatterns(safeDetectPatterns(detectRectangle, 'Rectangle'))
+    addUniquePatterns(safeDetectPatterns(detectYod, 'Yod'))
+    addUniquePatterns(safeDetectPatterns(detectStellium, 'Stellium'))
+    addUniquePatterns(safeDetectPatterns(detectHammerOfThor, 'Hammer of Thor'))
+    addUniquePatterns(safeDetectPatterns(detectStarOfDavid, 'Star of David'))
+    addUniquePatterns(safeDetectPatterns(detectDoubleTSquare, 'Double T-Square'))
+    addUniquePatterns(safeDetectPatterns(detectGrandSextile, 'Grand Sextile'))
+    addUniquePatterns(safeDetectPatterns(detectWedge, 'Wedge'))
+    addUniquePatterns(safeDetectPatterns(detectCastle, 'Castle'))
+    addUniquePatterns(safeDetectPatterns(detectTrapezoid, 'Trapezoid'))
+    addUniquePatterns(safeDetectPatterns(detectPentagram, 'Pentagram'))
+    addUniquePatterns(safeDetectPatterns(detectGrandQuintile, 'Grand Quintile'))
+    addUniquePatterns(safeDetectPatterns(detectRosetta, 'Rosetta'))
+    addUniquePatterns(safeDetectPatterns(detectBoomerangYod, 'Boomerang Yod'))
+    addUniquePatterns(safeDetectPatterns(detectArrowhead, 'Arrowhead'))
+    addUniquePatterns(safeDetectPatterns(detectStar, 'Star'))
+    addUniquePatterns(safeDetectPatterns(detectCrossbow, 'Crossbow'))
+    addUniquePatterns(safeDetectPatterns(detectButterfly, 'Butterfly'))
+    addUniquePatterns(safeDetectPatterns(detectBasket, 'Basket'))
+    addUniquePatterns(safeDetectPatterns(detectDiamond, 'Diamond'))
+    addUniquePatterns(safeDetectPatterns(detectHexagon, 'Hexagon'))
+    addUniquePatterns(safeDetectPatterns(detectShield, 'Shield'))
+    addUniquePatterns(safeDetectPatterns(detectArrow, 'Arrow'))
+    addUniquePatterns(safeDetectPatterns(detectHourglass, 'Hourglass'))
 
-  return {
-    patterns: allPatterns,
-    features: []  // Empty array since we're not handling features here
+    // Sort patterns by type and size
+    allPatterns.sort((a, b) => {
+      // First sort by pattern type priority
+      const patternPriority = {
+        'Grand Cross': 1,
+        'T-Square': 2,
+        'Grand Trine': 3,
+        'Bucket': 4,
+        'Bundle': 5,
+        'Locomotive': 6,
+        'Bowl': 7,
+        'Splash': 8,
+        'Seesaw': 9,
+        'Cradle': 10,
+        'Kite': 11,
+        'Mystic Rectangle': 12,
+        'Rectangle': 13,
+        'Yod': 14,
+        'Stellium': 15,
+        'Hammer of Thor': 16,
+        'Star of David': 17,
+        'Double T-Square': 18,
+        'Grand Sextile': 19,
+        'Wedge': 20,
+        'Castle': 21,
+        'Trapezoid': 22,
+        'Pentagram': 23,
+        'Grand Quintile': 24,
+        'Rosetta': 25,
+        'Boomerang Yod': 26,
+        'Arrowhead': 27,
+        'Star': 28,
+        'Crossbow': 29,
+        'Butterfly': 30,
+        'Basket': 31,
+        'Diamond': 32,
+        'Hexagon': 33,
+        'Shield': 34,
+        'Arrow': 35,
+        'Hourglass': 36
+      }
+      const priorityDiff = (patternPriority[a.name as keyof typeof patternPriority] || 99) -
+                          (patternPriority[b.name as keyof typeof patternPriority] || 99)
+      if (priorityDiff !== 0) return priorityDiff
+
+      // Then sort by number of planets involved (more planets first)
+      return b.planets.length - a.planets.length
+    })
+
+    console.debug('Final patterns:', allPatterns.map(p => ({
+      name: p.name,
+      planets: p.planets.map(planet => `${planet.name} at ${planet.formatted} ${planet.sign}`).join(', ')
+    })))
+
+    return {
+      patterns: allPatterns,
+      features: []  // Empty array since we're not handling features here
+    }
+  } catch (err) {
+    const error = err as Error
+    console.error('Error analyzing birth chart patterns:', error)
+    throw new Error(`Pattern analysis failed: ${error.message}`)
   }
 }

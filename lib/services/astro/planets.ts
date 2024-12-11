@@ -81,13 +81,76 @@ export function getZodiacSign(longitude: number): ZodiacSign {
     return ZODIAC_SIGNS[sign_index]
 }
 
+// Normalize Swiss Ephemeris API differences
+function normalizeSwissEph(swe: any) {
+    const isV2 = 'SE_GREG_CAL' in swe
+
+    return {
+        calc_ut: (jd: number, planet: number, flags: number) => {
+            if (isV2) {
+                return swe.swe_calc_ut(jd, planet, flags)
+            } else {
+                return new Promise((resolve, reject) => {
+                    swe.calc_ut(jd, planet, flags, (data: number[] | null, err: string | null) => {
+                        if (err) reject(new Error(err))
+                        else resolve(data)
+                    })
+                })
+            }
+        },
+        houses: (jd: number, lat: number, lon: number, hsys: string) => {
+            if (isV2) {
+                return swe.swe_houses(jd, lat, lon, hsys)
+            } else {
+                return new Promise((resolve, reject) => {
+                    swe.swe_houses(jd, lat, lon, hsys, (result: any, error: string | null) => {
+                        if (error) reject(new Error(error))
+                        else resolve(result)
+                    })
+                })
+            }
+        },
+        flags: {
+            SEFLG_SWIEPH: isV2 ? swe.SEFLG_SWIEPH : 2,
+            SEFLG_SPEED: isV2 ? swe.SEFLG_SPEED : 256,
+            SE_SUN: isV2 ? swe.SE_SUN : 0,
+            SE_MOON: isV2 ? swe.SE_MOON : 1,
+            SE_MERCURY: isV2 ? swe.SE_MERCURY : 2,
+            SE_VENUS: isV2 ? swe.SE_VENUS : 3,
+            SE_MARS: isV2 ? swe.SE_MARS : 4,
+            SE_JUPITER: isV2 ? swe.SE_JUPITER : 5,
+            SE_SATURN: isV2 ? swe.SE_SATURN : 6,
+            SE_URANUS: isV2 ? swe.SE_URANUS : 7,
+            SE_NEPTUNE: isV2 ? swe.SE_NEPTUNE : 8,
+            SE_PLUTO: isV2 ? swe.SE_PLUTO : 9,
+            SE_TRUE_NODE: isV2 ? swe.SE_TRUE_NODE : 11,
+            SE_CHIRON: isV2 ? swe.SE_CHIRON : 15
+        }
+    }
+}
+
 /**
  * Initialize Swiss Ephemeris with proper error handling
  */
 async function initializeSwissEph() {
     try {
-        const [swe, { default: fs }, { default: path }] = await Promise.all([
-            import('swisseph-v2'),
+        let swe;
+        try {
+            // Try loading swisseph-v2 first
+            swe = await import('swisseph-v2')
+            console.debug('Using swisseph-v2 module')
+        } catch (err) {
+            console.warn('Failed to load swisseph-v2, falling back to swisseph:', err)
+            try {
+                // Fallback to pure JavaScript swisseph
+                swe = await import('swisseph')
+                console.debug('Using swisseph (pure JS) module')
+            } catch (fallbackErr) {
+                throw new Error('Failed to load Swiss Ephemeris modules. Please ensure either swisseph-v2 or swisseph is properly installed.')
+            }
+        }
+
+        const [{ default: fs }, { default: path }] = await Promise.all([
             import('fs'),
             import('path')
         ])
@@ -107,8 +170,11 @@ async function initializeSwissEph() {
             throw new Error(`Missing required ephemeris files: ${missingFiles.join(', ')}. Please run download-ephe.js to download these files.`)
         }
 
-        swe.swe_set_ephe_path(ephePath)
-        return swe
+        if ('swe_set_ephe_path' in swe) {
+            swe.swe_set_ephe_path(ephePath)
+        }
+
+        return normalizeSwissEph(swe)
     } catch (err) {
         const error = err as Error
         throw new Error(`Swiss Ephemeris initialization failed: ${error.message || 'Unknown error'}`)
@@ -136,65 +202,61 @@ export async function calculatePlanetPositions(
     
     return new Promise((resolve, reject) => {
         const positions: Record<string, PlanetPosition> = {}
-        const calcFlags = (flags || swe.SEFLG_SWIEPH) | swe.SEFLG_SPEED
+        const calcFlags = (flags || swe.flags.SEFLG_SWIEPH) | swe.flags.SEFLG_SPEED
         const errors: string[] = []
 
-        const calculatePlanet = (planet: string, index: number): Promise<void> => {
-            return new Promise((resolveCalc, rejectCalc) => {
-                swe.swe_calc_ut(jd, index, calcFlags, (result: any) => {
-                    if (!result) {
-                        errors.push(`${planet}: Calculation failed - no result`)
-                        resolveCalc()
-                        return
-                    }
+        const calculatePlanet = async (planet: string, index: number): Promise<void> => {
+            try {
+                const result = await swe.calc_ut(jd, index, calcFlags)
 
-                    if ('error' in result) {
-                        errors.push(`${planet}: ${result.error}`)
-                        resolveCalc()
-                        return
-                    }
+                if (!result) {
+                    errors.push(`${planet}: Calculation failed - no result`)
+                    return
+                }
 
-                    if (!('longitude' in result) || typeof result.longitude !== 'number' || isNaN(result.longitude)) {
-                        errors.push(`${planet}: Invalid longitude value`)
-                        resolveCalc()
-                        return
-                    }
+                if ('error' in result) {
+                    errors.push(`${planet}: ${result.error}`)
+                    return
+                }
 
-                    try {
-                        const longitude = result.longitude
-                        const longitudeSpeed = result.longitudeSpeed || 0
-                        positions[planet] = {
-                            longitude,
-                            latitude: result.latitude || 0,
-                            distance: result.distance || 0,
-                            longitudeSpeed,
-                            sign: getZodiacSign(longitude),
-                            retrograde: longitudeSpeed < 0,
-                            formatted: formatDegreeMinute(longitude)
-                        }
-                        resolveCalc()
-                    } catch (err) {
-                        const error = err as Error
-                        errors.push(`${planet}: ${error.message || 'Unknown error'}`)
-                        resolveCalc()
-                    }
-                })
-            })
+                const longitude = result.longitude || result[0]
+                const latitude = result.latitude || result[1]
+                const distance = result.distance || result[2]
+                const longitudeSpeed = result.longitudeSpeed || result[3]
+
+                if (typeof longitude !== 'number' || isNaN(longitude)) {
+                    errors.push(`${planet}: Invalid longitude value`)
+                    return
+                }
+
+                positions[planet] = {
+                    longitude,
+                    latitude,
+                    distance,
+                    longitudeSpeed,
+                    sign: getZodiacSign(longitude),
+                    retrograde: longitudeSpeed < 0,
+                    formatted: formatDegreeMinute(longitude)
+                }
+            } catch (err) {
+                const error = err as Error
+                errors.push(`${planet}: ${error.message || 'Unknown error'}`)
+            }
         }
 
         const PLANET_INDICES = {
-            Sun: swe.SE_SUN,
-            Moon: swe.SE_MOON,
-            Mercury: swe.SE_MERCURY,
-            Venus: swe.SE_VENUS,
-            Mars: swe.SE_MARS,
-            Jupiter: swe.SE_JUPITER,
-            Saturn: swe.SE_SATURN,
-            Uranus: swe.SE_URANUS,
-            Neptune: swe.SE_NEPTUNE,
-            Pluto: swe.SE_PLUTO,
-            NorthNode: swe.SE_TRUE_NODE,
-            Chiron: swe.SE_CHIRON
+            Sun: swe.flags.SE_SUN,
+            Moon: swe.flags.SE_MOON,
+            Mercury: swe.flags.SE_MERCURY,
+            Venus: swe.flags.SE_VENUS,
+            Mars: swe.flags.SE_MARS,
+            Jupiter: swe.flags.SE_JUPITER,
+            Saturn: swe.flags.SE_SATURN,
+            Uranus: swe.flags.SE_URANUS,
+            Neptune: swe.flags.SE_NEPTUNE,
+            Pluto: swe.flags.SE_PLUTO,
+            NorthNode: swe.flags.SE_TRUE_NODE,
+            Chiron: swe.flags.SE_CHIRON
         }
 
         Promise.all(
@@ -260,62 +322,61 @@ export async function calculateHouses(
         throw new Error(`Failed to initialize Swiss Ephemeris for house calculation: ${error.message || 'Unknown error'}`)
     }
     
-    return new Promise((resolve, reject) => {
+    try {
         const houses: Record<string, HouseData> = {}
         const hsys = HOUSE_SYSTEMS[houseSystem]
 
-        swe.swe_houses(jd, lat, lon, hsys, (result: any) => {
-            try {
-                if (!result) {
-                    throw new Error('House calculation failed - no result')
-                }
+        const result = await swe.houses(jd, lat, lon, hsys)
 
-                if ('error' in result) {
-                    throw new Error(`House calculation error: ${result.error}`)
-                }
+        if (!result) {
+            throw new Error('House calculation failed - no result')
+        }
 
-                if (!result.house || !Array.isArray(result.house)) {
-                    throw new Error('Invalid house calculation result')
-                }
+        if ('error' in result) {
+            throw new Error(`House calculation error: ${result.error}`)
+        }
 
-                result.house.forEach((cusp: number, i: number) => {
-                    if (typeof cusp !== 'number' || isNaN(cusp)) {
-                        throw new Error(`Invalid cusp value for house ${i + 1}`)
-                    }
+        if (!result.house || !Array.isArray(result.house)) {
+            throw new Error('Invalid house calculation result')
+        }
 
-                    houses[`House_${i+1}`] = {
-                        cusp,
-                        sign: getZodiacSign(cusp),
-                        formatted: formatDegreeMinute(cusp)
-                    }
-                })
+        result.house.forEach((cusp: number, i: number) => {
+            if (typeof cusp !== 'number' || isNaN(cusp)) {
+                throw new Error(`Invalid cusp value for house ${i + 1}`)
+            }
 
-                if (!('ascendant' in result) || !('mc' in result)) {
-                    throw new Error('Missing Ascendant or Midheaven in house calculation')
-                }
-
-                if (typeof result.ascendant !== 'number' || isNaN(result.ascendant) ||
-                    typeof result.mc !== 'number' || isNaN(result.mc)) {
-                    throw new Error('Invalid Ascendant or Midheaven values')
-                }
-
-                houses['Ascendant'] = { 
-                    cusp: result.ascendant, 
-                    sign: getZodiacSign(result.ascendant),
-                    formatted: formatDegreeMinute(result.ascendant)
-                }
-                houses['Midheaven'] = { 
-                    cusp: result.mc, 
-                    sign: getZodiacSign(result.mc),
-                    formatted: formatDegreeMinute(result.mc)
-                }
-                resolve(houses)
-            } catch (err) {
-                const error = err as Error
-                reject(new Error(`House calculation failed: ${error.message || 'Unknown error'}`))
+            houses[`House_${i+1}`] = {
+                cusp,
+                sign: getZodiacSign(cusp),
+                formatted: formatDegreeMinute(cusp)
             }
         })
-    })
+
+        if (!('ascendant' in result) || !('mc' in result)) {
+            throw new Error('Missing Ascendant or Midheaven in house calculation')
+        }
+
+        if (typeof result.ascendant !== 'number' || isNaN(result.ascendant) ||
+            typeof result.mc !== 'number' || isNaN(result.mc)) {
+            throw new Error('Invalid Ascendant or Midheaven values')
+        }
+
+        houses['Ascendant'] = { 
+            cusp: result.ascendant, 
+            sign: getZodiacSign(result.ascendant),
+            formatted: formatDegreeMinute(result.ascendant)
+        }
+        houses['Midheaven'] = { 
+            cusp: result.mc, 
+            sign: getZodiacSign(result.mc),
+            formatted: formatDegreeMinute(result.mc)
+        }
+
+        return houses
+    } catch (err) {
+        const error = err as Error
+        throw new Error(`House calculation failed: ${error.message || 'Unknown error'}`)
+    }
 }
 
 export {

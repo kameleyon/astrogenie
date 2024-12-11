@@ -19,6 +19,81 @@ interface BirthChartInput {
     houseSystem?: keyof typeof HOUSE_SYSTEMS
 }
 
+// Normalize Swiss Ephemeris API differences
+function normalizeSwissEph(swe: any) {
+    const isV2 = 'SE_GREG_CAL' in swe
+
+    return {
+        julday: (year: number, month: number, day: number, hour: number) => {
+            if (isV2) {
+                return swe.swe_julday(year, month, day, hour, swe.SE_GREG_CAL)
+            } else {
+                return new Promise<number>((resolve, reject) => {
+                    try {
+                        // Pure JS version uses different date calculation
+                        const date = new Date(year, month - 1, day, Math.floor(hour), 
+                            Math.floor((hour % 1) * 60), Math.floor(((hour * 60) % 1) * 60))
+                        const jd = swe.swe_julday(date, swe.SE_GREG_CAL)
+                        resolve(jd)
+                    } catch (err) {
+                        reject(err)
+                    }
+                })
+            }
+        },
+        calc_ut: (jd: number, planet: number, flags: number) => {
+            if (isV2) {
+                return swe.swe_calc_ut(jd, planet, flags)
+            } else {
+                return new Promise((resolve, reject) => {
+                    swe.calc_ut(jd, planet, flags, (data: number[] | null, err: string | null) => {
+                        if (err) reject(new Error(err))
+                        else resolve(data)
+                    })
+                })
+            }
+        },
+        houses: (jd: number, lat: number, lon: number, hsys: string) => {
+            if (isV2) {
+                return swe.swe_houses(jd, lat, lon, hsys)
+            } else {
+                return new Promise((resolve, reject) => {
+                    swe.swe_houses(jd, lat, lon, hsys, (result: any, error: string | null) => {
+                        if (error) reject(new Error(error))
+                        else resolve(result)
+                    })
+                })
+            }
+        }
+    }
+}
+
+// Load required modules with fallback
+async function loadAstrologyModules() {
+    let swe;
+    try {
+        // Try loading swisseph-v2 first
+        swe = await import('swisseph-v2')
+        console.debug('Using swisseph-v2 module')
+    } catch (err) {
+        console.warn('Failed to load swisseph-v2, falling back to swisseph:', err)
+        try {
+            // Fallback to pure JavaScript swisseph
+            swe = await import('swisseph')
+            console.debug('Using swisseph (pure JS) module')
+        } catch (fallbackErr) {
+            throw new Error('Failed to load Swiss Ephemeris modules. Please ensure either swisseph-v2 or swisseph is properly installed.')
+        }
+    }
+
+    try {
+        const moment = await import('moment-timezone')
+        return { swe: normalizeSwissEph(swe), moment }
+    } catch (err) {
+        throw new Error('Failed to load moment-timezone module')
+    }
+}
+
 /**
  * Parse date string to year, month, day
  */
@@ -83,21 +158,19 @@ async function calculateJulianDay(
 ): Promise<number> {
     try {
         const timezone = await getTimezone(latitude, longitude)
-        const moment = (await import('moment-timezone')).default
+        const { swe, moment } = await loadAstrologyModules()
 
-        const local_time = moment.tz([year, month - 1, day, hour, minute, second], timezone)
+        const local_time = moment.default.tz([year, month - 1, day, hour, minute, second], timezone)
         if (!local_time.isValid()) {
             throw new Error('Invalid date/time combination')
         }
 
-        const swe = await import('swisseph-v2')
         const utc_time = local_time.clone().utc()
-        const jd = swe.swe_julday(
+        const jd = await swe.julday(
             utc_time.year(),
             utc_time.month() + 1,
             utc_time.date(),
-            utc_time.hours() + utc_time.minutes()/60.0 + utc_time.seconds()/3600.0,
-            swe.SE_GREG_CAL
+            utc_time.hours() + utc_time.minutes()/60.0 + utc_time.seconds()/3600.0
         )
 
         if (isNaN(jd)) {

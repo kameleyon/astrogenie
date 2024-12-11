@@ -2,9 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['i.ibb.co'], // Allow images from i.ibb.co
+    domains: ['i.ibb.co'],
   },
-  webpack: (config, { isServer }) => {
+  output: 'standalone',
+  poweredByHeader: false,
+  compress: true,
+
+  // Disable static optimization for API routes
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  webpack: (config, { isServer, dev }) => {
     // Handle native modules (like swisseph-v2)
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -21,7 +30,11 @@ const nextConfig = {
 
     if (isServer) {
       // Server-side configuration
-      config.externals = [...config.externals, 'swisseph-v2', 'swisseph']
+      config.externals = [
+        ...config.externals,
+        'swisseph-v2',
+        'swisseph'
+      ]
     } else {
       // Client-side configuration
       config.resolve.alias = {
@@ -31,11 +44,61 @@ const nextConfig = {
       }
     }
 
+    // Optimize chunks for production
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        minimize: true,
+        splitChunks: {
+          chunks: 'all',
+          maxInitialRequests: 25,
+          minSize: 20000,
+          maxSize: 240000,
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            commons: {
+              name: 'commons',
+              chunks: 'all',
+              minChunks: 2,
+              reuseExistingChunk: true,
+            },
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendor',
+              chunks: 'all',
+            },
+          },
+        },
+      }
+    }
+
     return config
   },
+
+  // Configure experimental features
   experimental: {
     serverActions: true,
-    serverComponentsExternalPackages: ['swisseph-v2', 'swisseph'], // Add both modules as external packages
+    serverComponentsExternalPackages: ['swisseph-v2', 'swisseph'],
+  },
+
+  // Configure redirects
+  async redirects() {
+    return []
+  },
+
+  // Configure headers
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type' },
+        ],
+      },
+    ]
   },
 }
 

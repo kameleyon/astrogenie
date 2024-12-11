@@ -12,7 +12,7 @@
   # Use system GLIBC
   LD_LIBRARY_PATH = "/usr/lib64"
   # Ensure Swiss Ephemeris files are available
-  SWISSEPH_PATH = "/opt/build/repo/ephe"
+  SWISSEPH_PATH = "/opt/build/repo/public/ephe"
   # Force installation of optional dependencies
   NPM_CONFIG_OPTIONAL = "false"
 
@@ -23,7 +23,6 @@
   # Increase timeout for functions that perform heavy calculations
   node_bundler = "esbuild"
   external_node_modules = ["swisseph-v2", "swisseph"]
-  included_files = ["ephe/*"]
 
 [[redirects]]
   from = "/*"

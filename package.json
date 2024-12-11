@@ -79,6 +79,7 @@
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^4.41.3",
+    "@types/moment-timezone": "^0.5.13",
     "@vercel/webpack-asset-relocator-loader": "^1.7.4",
     "node-loader": "^2.1.0",
     "null-loader": "^4.0.1"

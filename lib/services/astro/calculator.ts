@@ -8,6 +8,7 @@ import {
     calculateHouses,
     HOUSE_SYSTEMS
 } from './planets'
+import moment from 'moment-timezone'
 
 interface BirthChartInput {
     name: string
@@ -86,12 +87,7 @@ async function loadAstrologyModules() {
         }
     }
 
-    try {
-        const moment = await import('moment-timezone')
-        return { swe: normalizeSwissEph(swe), moment }
-    } catch (err) {
-        throw new Error('Failed to load moment-timezone module')
-    }
+    return { swe: normalizeSwissEph(swe), moment }
 }
 
 /**
@@ -158,9 +154,9 @@ async function calculateJulianDay(
 ): Promise<number> {
     try {
         const timezone = await getTimezone(latitude, longitude)
-        const { swe, moment } = await loadAstrologyModules()
+        const { swe } = await loadAstrologyModules()
 
-        const local_time = moment.default.tz([year, month - 1, day, hour, minute, second], timezone)
+        const local_time = moment.tz([year, month - 1, day, hour, minute, second], timezone)
         if (!local_time.isValid()) {
             throw new Error('Invalid date/time combination')
         }

@@ -31,12 +31,19 @@ const nextConfig = {
       }
     }
 
+    // Add transpilePackages for moment-timezone
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'moment-timezone': require.resolve('moment-timezone'),
+    }
+
     return config
   },
   experimental: {
     serverActions: true,
     serverComponentsExternalPackages: ['swisseph-v2', 'swisseph'], // Add both modules as external packages
   },
+  transpilePackages: ['moment-timezone'], // Add moment-timezone to transpilePackages
 }
 
 module.exports = nextConfig

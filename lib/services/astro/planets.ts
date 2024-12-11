@@ -220,9 +220,9 @@ export async function calculatePlanetPositions(
                 }
 
                 const longitude = result.longitude || result[0]
-                const latitude = result.latitude || result[1]
-                const distance = result.distance || result[2]
-                const longitudeSpeed = result.longitudeSpeed || result[3]
+                const latitude = result.latitude || result[1] || 0 // Default to 0 for nodes
+                const distance = result.distance || result[2] || 0 // Default to 0 for nodes
+                const longitudeSpeed = result.longitudeSpeed || result[3] || 0 // Default to 0 for nodes
 
                 if (typeof longitude !== 'number' || isNaN(longitude)) {
                     errors.push(`${planet}: Invalid longitude value`)

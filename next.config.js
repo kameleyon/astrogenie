@@ -13,14 +13,21 @@ const nextConfig = {
       os: false,
     }
 
+    // Add node-loader for .node files
+    config.module.rules.push({
+      test: /\.node$/,
+      loader: 'node-loader',
+    })
+
     if (isServer) {
       // Server-side configuration
-      config.externals = [...config.externals, 'swisseph-v2']
+      config.externals = [...config.externals, 'swisseph-v2', 'swisseph']
     } else {
       // Client-side configuration
       config.resolve.alias = {
         ...config.resolve.alias,
         'swisseph-v2': false,
+        'swisseph': false,
       }
     }
 
@@ -28,7 +35,7 @@ const nextConfig = {
   },
   experimental: {
     serverActions: true,
-    serverComponentsExternalPackages: ['swisseph-v2'], // Add swisseph-v2 as external package
+    serverComponentsExternalPackages: ['swisseph-v2', 'swisseph'], // Add both modules as external packages
   },
 }
 

@@ -8,6 +8,7 @@ import {
     calculateHouses,
     HOUSE_SYSTEMS
 } from './planets'
+import { DateTime } from 'luxon'
 
 interface BirthChartInput {
     name: string
@@ -86,12 +87,7 @@ async function loadAstrologyModules() {
         }
     }
 
-    try {
-        const moment = await import('moment-timezone')
-        return { swe: normalizeSwissEph(swe), moment }
-    } catch (err) {
-        throw new Error('Failed to load moment-timezone module')
-    }
+    return { swe: normalizeSwissEph(swe) }
 }
 
 /**
@@ -158,19 +154,32 @@ async function calculateJulianDay(
 ): Promise<number> {
     try {
         const timezone = await getTimezone(latitude, longitude)
-        const { swe, moment } = await loadAstrologyModules()
+        const { swe } = await loadAstrologyModules()
 
-        const local_time = moment.default.tz([year, month - 1, day, hour, minute, second], timezone)
-        if (!local_time.isValid()) {
+        // Create DateTime object in the local timezone
+        const local_time = DateTime.fromObject({
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second
+        }, {
+            zone: timezone
+        })
+
+        if (!local_time.isValid) {
             throw new Error('Invalid date/time combination')
         }
 
-        const utc_time = local_time.clone().utc()
+        // Convert to UTC
+        const utc_time = local_time.toUTC()
+
         const jd = await swe.julday(
-            utc_time.year(),
-            utc_time.month() + 1,
-            utc_time.date(),
-            utc_time.hours() + utc_time.minutes()/60.0 + utc_time.seconds()/3600.0
+            utc_time.year,
+            utc_time.month,
+            utc_time.day,
+            utc_time.hour + utc_time.minute/60.0 + utc_time.second/3600.0
         )
 
         if (isNaN(jd)) {

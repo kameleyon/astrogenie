@@ -1,0 +1,47 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF . ':(exclude)ephe/*'"
+
+[build.environment]
+  NEXT_PUBLIC_SITE_URL = "https://astrogenie.netlify.app"
+  NODE_VERSION = "18"
+  NPM_VERSION = "9"
+  # Enable native module builds
+  ENABLE_NATIVE_MODULES = "true"
+  # Use system GLIBC
+  LD_LIBRARY_PATH = "/usr/lib64"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  # Increase timeout for functions that perform heavy calculations
+  node_bundler = "esbuild"
+  external_node_modules = ["swisseph-v2"]
+  included_files = ["ephe/*"]
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
+
+[context.production]
+  environment = { NODE_ENV = "production" }
+
+[context.deploy-preview]
+  environment = { NODE_ENV = "production" }
+
+[context.branch-deploy]
+  environment = { NODE_ENV = "production" }
+
+[dev]
+  framework = "next"
+  targetPort = 3000

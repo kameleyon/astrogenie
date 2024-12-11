@@ -2,10 +2,15 @@ import { PlanetPosition, PatternData } from '../../../types/birth-chart'
 import { isTrine, isSextile, toPlanetData } from './utils'
 
 /**
- * Detect Butterfly pattern (a configuration with harmonious and tense aspects forming a butterfly shape)
+ * Detect Butterfly pattern
+ * Requirements:
+ * 1. Two pairs of planets in trine (120°)
+ * 2. Connected by sextiles (60°) between the pairs
+ * Creating a butterfly-like shape with harmonious aspects
  */
 export function detectButterfly(planets: Array<PlanetPosition & { name: string }>): PatternData[] {
   const patterns: PatternData[] = []
+  console.debug('Checking for Butterfly patterns...')
 
   for (let i = 0; i < planets.length - 3; i++) {
     for (let j = i + 1; j < planets.length - 2; j++) {
@@ -14,13 +19,30 @@ export function detectButterfly(planets: Array<PlanetPosition & { name: string }
           const [p1, p2, p3, p4] = [planets[i], planets[j], planets[k], planets[l]]
 
           if (
-            isTrine(p1, p2) && isTrine(p3, p4) &&
+            // First pair in trine
+            isTrine(p1, p2) &&
+            // Second pair in trine
+            isTrine(p3, p4) &&
+            // Connecting sextiles
             isSextile(p2, p3) && isSextile(p4, p1)
           ) {
+            console.debug(`Butterfly pattern found:`)
+            console.debug(`First trine:`)
+            console.debug(`- ${p1.name} at ${p1.formatted} ${p1.sign}`)
+            console.debug(`- ${p2.name} at ${p2.formatted} ${p2.sign}`)
+            console.debug(`Second trine:`)
+            console.debug(`- ${p3.name} at ${p3.formatted} ${p3.sign}`)
+            console.debug(`- ${p4.name} at ${p4.formatted} ${p4.sign}`)
+
+            const patternPlanets = [p1, p2, p3, p4].map(p => ({
+              ...toPlanetData(p),
+              position: `${p.formatted} ${p.sign}`
+            }))
+
             patterns.push({
               name: 'Butterfly',
-              planets: [p1, p2, p3, p4].map(toPlanetData),
-              description: 'A harmonious and balanced pattern resembling a butterfly.'
+              planets: patternPlanets,
+              description: `${p1.name}-${p2.name} and ${p3.name}-${p4.name} in trines, connected by sextiles forming a butterfly shape`
             })
           }
         }

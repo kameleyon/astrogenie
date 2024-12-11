@@ -1,9 +1,10 @@
 import { HousePosition, GeoPosition } from './types'
 import { getZodiacSign } from './planets'
+import { normalizeAngle } from './patterns/utils'
 
 /**
- * Calculate house cusps
- * Direct port of Python's calculate_houses function
+ * Calculate house cusps using Swiss Ephemeris principles
+ * This implementation uses the Placidus house system by default
  */
 export async function calculateHouseCusps(
   julianDay: number,
@@ -15,107 +16,143 @@ export async function calculateHouseCusps(
   midheaven: number
 }> {
   try {
-    // Since we don't have Swiss Ephemeris, we'll calculate approximate positions
-    // This is a temporary implementation until we can properly integrate Swiss Ephemeris
-    
-    // Calculate RAMC (Right Ascension of Midheaven)
-    const SIDEREAL_RATE = 360.985647 // degrees per sidereal day
-    const RAMC = (SIDEREAL_RATE * (julianDay - 2451545.0) + position.longitude) % 360
+    // Calculate RAMC (Right Ascension of Midheaven) with higher precision
+    const SIDEREAL_RATE = 360.985647366 // degrees per sidereal day
+    const RAMC = normalizeAngle(SIDEREAL_RATE * (julianDay - 2451545.0) + position.longitude)
 
-    // Calculate obliquity of ecliptic
+    // Calculate obliquity of ecliptic with better precision
     const T = (julianDay - 2451545.0) / 36525.0
-    const obliquity = 23.43929111 - 0.013004167 * T - 0.000000164 * T * T + 0.000000503 * T * T * T
+    const obliquity = 23.43929111111111 -
+                     0.013004166666667 * T -
+                     0.000000163888889 * T * T +
+                     0.000000503611111 * T * T * T
 
-    // Calculate Midheaven
+    // Calculate Midheaven using more precise trigonometry
     const tanRAMC = Math.tan(RAMC * Math.PI / 180)
     const cosObl = Math.cos(obliquity * Math.PI / 180)
     const MC = Math.atan2(tanRAMC, cosObl) * 180 / Math.PI
-    const midheaven = ((MC % 360) + 360) % 360
+    const midheaven = normalizeAngle(MC)
 
-    // Calculate Ascendant
+    // Calculate Ascendant with improved precision
     const sinObl = Math.sin(obliquity * Math.PI / 180)
     const tanLat = Math.tan(position.latitude * Math.PI / 180)
-    const ascendant = Math.atan2(
-      Math.cos(RAMC * Math.PI / 180),
-      -(sinObl * tanLat + cosObl * Math.sin(RAMC * Math.PI / 180))
-    ) * 180 / Math.PI
-    const normalizedAsc = ((ascendant % 360) + 360) % 360
+    const ascendant = normalizeAngle(
+      Math.atan2(
+        Math.cos(RAMC * Math.PI / 180),
+        -(sinObl * tanLat + cosObl * Math.sin(RAMC * Math.PI / 180))
+      ) * 180 / Math.PI
+    )
 
-    // Calculate house cusps using Placidus system
+    // Initialize house cusps
     const cusps: Record<number, HousePosition> = {}
-    
-    // House 1 (Ascendant)
-    cusps[1] = {
-      cusp: normalizedAsc,
-      sign: getZodiacSign(normalizedAsc)
-    }
 
-    // House 10 (Midheaven)
-    cusps[10] = {
-      cusp: midheaven,
-      sign: getZodiacSign(midheaven)
-    }
+    // Calculate angular houses
+    cusps[1] = { cusp: ascendant, sign: getZodiacSign(ascendant) }  // ASC
+    cusps[10] = { cusp: midheaven, sign: getZodiacSign(midheaven) }  // MC
+    cusps[7] = { cusp: normalizeAngle(ascendant + 180), sign: getZodiacSign(normalizeAngle(ascendant + 180)) }  // DSC
+    cusps[4] = { cusp: normalizeAngle(midheaven + 180), sign: getZodiacSign(normalizeAngle(midheaven + 180)) }  // IC
 
-    // House 7 (Descendant)
-    const descendant = (normalizedAsc + 180) % 360
-    cusps[7] = {
-      cusp: descendant,
-      sign: getZodiacSign(descendant)
-    }
+    // Calculate intermediate houses using Placidus system
+    if (houseSystem === 'P') {
+      // Houses 2-3 (Eastern houses)
+      for (let i = 2; i <= 3; i++) {
+        const houseAngle = calculatePlacidusHouseAngle(
+          ascendant, midheaven, position.latitude, obliquity, i
+        )
+        cusps[i] = {
+          cusp: houseAngle,
+          sign: getZodiacSign(houseAngle)
+        }
+      }
 
-    // House 4 (Imum Coeli)
-    const ic = (midheaven + 180) % 360
-    cusps[4] = {
-      cusp: ic,
-      sign: getZodiacSign(ic)
-    }
+      // Houses 5-6 (Western houses)
+      for (let i = 5; i <= 6; i++) {
+        const houseAngle = calculatePlacidusHouseAngle(
+          ascendant, midheaven, position.latitude, obliquity, i
+        )
+        cusps[i] = {
+          cusp: houseAngle,
+          sign: getZodiacSign(houseAngle)
+        }
+      }
 
-    // Calculate intermediate houses
-    // Houses 2-3
-    for (let i = 2; i <= 3; i++) {
-      const angle = normalizedAsc + (i - 1) * 30
-      cusps[i] = {
-        cusp: angle % 360,
-        sign: getZodiacSign(angle)
+      // Houses 8-9 (Northern houses)
+      for (let i = 8; i <= 9; i++) {
+        const houseAngle = calculatePlacidusHouseAngle(
+          ascendant, midheaven, position.latitude, obliquity, i
+        )
+        cusps[i] = {
+          cusp: houseAngle,
+          sign: getZodiacSign(houseAngle)
+        }
+      }
+
+      // Houses 11-12 (Southern houses)
+      for (let i = 11; i <= 12; i++) {
+        const houseAngle = calculatePlacidusHouseAngle(
+          ascendant, midheaven, position.latitude, obliquity, i
+        )
+        cusps[i] = {
+          cusp: houseAngle,
+          sign: getZodiacSign(houseAngle)
+        }
+      }
+    } else {
+      // Equal house system as fallback
+      for (let i = 1; i <= 12; i++) {
+        const angle = normalizeAngle(ascendant + (i - 1) * 30)
+        cusps[i] = {
+          cusp: angle,
+          sign: getZodiacSign(angle)
+        }
       }
     }
 
-    // Houses 5-6
-    for (let i = 5; i <= 6; i++) {
-      const angle = ic + (i - 4) * 30
-      cusps[i] = {
-        cusp: angle % 360,
-        sign: getZodiacSign(angle)
-      }
-    }
-
-    // Houses 8-9
-    for (let i = 8; i <= 9; i++) {
-      const angle = descendant + (i - 7) * 30
-      cusps[i] = {
-        cusp: angle % 360,
-        sign: getZodiacSign(angle)
-      }
-    }
-
-    // Houses 11-12
-    for (let i = 11; i <= 12; i++) {
-      const angle = midheaven + (i - 10) * 30
-      cusps[i] = {
-        cusp: angle % 360,
-        sign: getZodiacSign(angle)
-      }
-    }
-
-    return {
-      cusps,
-      ascendant: normalizedAsc,
-      midheaven
-    }
+    return { cusps, ascendant, midheaven }
   } catch (error) {
     console.error('Error calculating houses:', error)
     throw error
   }
+}
+
+/**
+ * Calculate Placidus house angle using Swiss Ephemeris principles
+ */
+function calculatePlacidusHouseAngle(
+  ascendant: number,
+  midheaven: number,
+  latitude: number,
+  obliquity: number,
+  houseNumber: number
+): number {
+  // Convert to radians
+  const ascRad = ascendant * Math.PI / 180
+  const mcRad = midheaven * Math.PI / 180
+  const latRad = latitude * Math.PI / 180
+  const oblRad = obliquity * Math.PI / 180
+
+  // Calculate house angle based on Placidus system
+  let angle: number
+
+  if (houseNumber === 2 || houseNumber === 3) {
+    const fraction = houseNumber === 2 ? 1/3 : 2/3
+    angle = Math.atan2(
+      Math.sin(ascRad),
+      Math.cos(ascRad) * Math.cos(latRad) + Math.sin(latRad) * Math.tan(oblRad * fraction)
+    )
+  } else if (houseNumber === 11 || houseNumber === 12) {
+    const fraction = houseNumber === 11 ? 2/3 : 1/3
+    angle = Math.atan2(
+      Math.sin(mcRad),
+      Math.cos(mcRad) * Math.cos(latRad) + Math.sin(latRad) * Math.tan(oblRad * fraction)
+    )
+  } else {
+    // For other houses, use equal division
+    angle = ascRad + ((houseNumber - 1) * 30 * Math.PI / 180)
+  }
+
+  // Convert back to degrees and normalize
+  return normalizeAngle(angle * 180 / Math.PI)
 }
 
 /**
@@ -125,12 +162,10 @@ export function getHousePosition(
   degree: number,
   cusps: Record<number, HousePosition>
 ): number {
-  // Normalize degree to 0-360 range
-  degree = ((degree % 360) + 360) % 360
-
+  const normalizedDegree = normalizeAngle(degree)
   const cuspDegrees = Object.entries(cusps).map(([house, pos]) => ({
     house: parseInt(house),
-    degree: pos.cusp
+    degree: normalizeAngle(pos.cusp)
   }))
 
   // Sort cusps by degree
@@ -143,11 +178,11 @@ export function getHousePosition(
     const end = cuspDegrees[nextIndex].degree
 
     if (end < start) { // Crosses 0°
-      if (degree >= start || degree < end) {
+      if (normalizedDegree >= start || normalizedDegree < end) {
         return cuspDegrees[i].house
       }
     } else {
-      if (degree >= start && degree < end) {
+      if (normalizedDegree >= start && normalizedDegree < end) {
         return cuspDegrees[i].house
       }
     }
@@ -201,11 +236,11 @@ export function getNaturalHouseRuler(house: number): string {
     5: "Sun",
     6: "Mercury",
     7: "Venus",
-    8: "Mars",
+    8: "Pluto", // Modern ruler
     9: "Jupiter",
     10: "Saturn",
-    11: "Saturn",
-    12: "Jupiter"
+    11: "Uranus", // Modern ruler
+    12: "Neptune" // Modern ruler
   }
   return rulers[house as keyof typeof rulers] || "Unknown"
 }

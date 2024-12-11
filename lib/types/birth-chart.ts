@@ -65,6 +65,18 @@ export interface PatternPlanetData {
   sign: ZodiacSign;
   degree: string;
   longitude: number;
+  position?: string;  // Added for formatted position like "25° Scorpio"
+}
+
+// Pattern visualization data
+export interface PatternVisualization {
+  type: string;    // e.g., 'triangle' for Grand Trine, 'rectangle' for Rectangle
+  color?: string;  // Optional color for the pattern
+  points: Array<{
+    x: number;
+    y: number;
+    planet: PatternPlanetData;
+  }>;
 }
 
 // Pattern data
@@ -72,6 +84,7 @@ export interface PatternData {
   name: string;
   planets: PatternPlanetData[];
   description: string;
+  visualization?: PatternVisualization;  // Added for pattern visualization
 }
 
 // Special feature data

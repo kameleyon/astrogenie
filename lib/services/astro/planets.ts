@@ -1,5 +1,3 @@
-import moment from 'moment-timezone'
-import tzlookup from 'tz-lookup'
 import { ZodiacSign, PlanetPosition, HouseData } from '../../types/birth-chart'
 
 // Zodiac signs
@@ -53,13 +51,14 @@ function formatDegreeMinute(longitude: number): string {
 /**
  * Get timezone based on coordinates
  */
-export function getTimezone(latitude: number, longitude: number): string {
+export async function getTimezone(latitude: number, longitude: number): Promise<string> {
     if (typeof latitude !== 'number' || typeof longitude !== 'number' ||
         isNaN(latitude) || isNaN(longitude)) {
         throw new Error('Invalid coordinates for timezone lookup')
     }
 
     try {
+        const tzlookup = (await import('tz-lookup')).default
         const timezone = tzlookup(latitude, longitude)
         if (!timezone) {
             throw new Error(`Invalid coordinates: lat:${latitude}, lon:${longitude}`)
@@ -86,19 +85,15 @@ export function getZodiacSign(longitude: number): ZodiacSign {
  * Initialize Swiss Ephemeris with proper error handling
  */
 async function initializeSwissEph() {
-    let swe;
     try {
-        swe = await import('swisseph-v2')
-    } catch (err) {
-        throw new Error('Failed to import Swiss Ephemeris module')
-    }
+        const [swe, { default: fs }, { default: path }] = await Promise.all([
+            import('swisseph-v2'),
+            import('fs'),
+            import('path')
+        ])
 
-    const fs = await import('fs')
-    const path = await import('path')
-    
-    const ephePath = path.join(process.cwd(), 'ephe')
-    
-    try {
+        const ephePath = path.join(process.cwd(), 'ephe')
+        
         // Check if ephemeris directory exists
         if (!fs.existsSync(ephePath)) {
             fs.mkdirSync(ephePath, { recursive: true })
@@ -109,7 +104,7 @@ async function initializeSwissEph() {
         const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(ephePath, file)))
         
         if (missingFiles.length > 0) {
-            throw new Error(`Missing required ephemeris files: ${missingFiles.join(', ')}. Please ensure these files are present in the ephe directory.`)
+            throw new Error(`Missing required ephemeris files: ${missingFiles.join(', ')}. Please run download-ephe.js to download these files.`)
         }
 
         swe.swe_set_ephe_path(ephePath)

@@ -1,13 +1,13 @@
 import { BirthChartData, PlanetPosition, Position, PatternData, ZodiacSign, HouseData, PlanetName } from '../../../lib/types/birth-chart'
 import { analyzeBirthChart } from './patterns'
 import { analyzeSpecialFeatures } from './features'
+import { calculateAspects } from './aspects'
 import { 
     getTimezone, 
     calculatePlanetPositions, 
     calculateHouses,
     HOUSE_SYSTEMS
 } from './planets'
-import { calculateAspects } from './aspects'
 
 interface BirthChartInput {
     name: string
@@ -71,7 +71,7 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
 /**
  * Calculate Julian Day
  */
-function calculateJulianDay(
+async function calculateJulianDay(
     year: number,
     month: number,
     day: number,
@@ -80,17 +80,17 @@ function calculateJulianDay(
     second: number,
     latitude: number,
     longitude: number
-): number {
+): Promise<number> {
     try {
-        const timezone = getTimezone(latitude, longitude)
-        const moment = require('moment-timezone')
-        const swe = require('swisseph-v2')
+        const timezone = await getTimezone(latitude, longitude)
+        const moment = (await import('moment-timezone')).default
 
         const local_time = moment.tz([year, month - 1, day, hour, minute, second], timezone)
         if (!local_time.isValid()) {
             throw new Error('Invalid date/time combination')
         }
 
+        const swe = await import('swisseph-v2')
         const utc_time = local_time.clone().utc()
         const jd = swe.swe_julday(
             utc_time.year(),
@@ -128,7 +128,7 @@ export async function calculateBirthChart(input: BirthChartInput): Promise<Birth
         const { hour, minute } = parseTime(input.time)
         
         // Calculate Julian Day with timezone handling
-        const jd = calculateJulianDay(
+        const jd = await calculateJulianDay(
             year,
             month,
             day,
@@ -235,6 +235,7 @@ export async function calculateBirthChart(input: BirthChartInput): Promise<Birth
         return birthChartData
     } catch (err) {
         const error = err as Error
+        console.error('Birth chart calculation error:', error)
         throw new Error(`Birth chart calculation failed: ${error.message || 'Unknown error'}`)
     }
 }

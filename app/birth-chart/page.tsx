@@ -1,10 +1,10 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { BirthChartForm } from "@/components/birth-chart/birth-chart-form"
-import { AstrologicalSymbols } from "@/components/birth-chart/astrological-symbols"
-import { BirthChartData } from "@/lib/types/birth-chart"
-import { BirthChartResult } from "@/components/birth-chart/birth-chart-result"
+import { BirthChartForm } from "../../components/birth-chart/birth-chart-form"
+import { AstrologicalSymbols } from "../../components/birth-chart/astrological-symbols"
+import { BirthChartData } from "../../lib/types/birth-chart"
+import { BirthChartResult } from "../../components/birth-chart/birth-chart-result"
 import { useState } from "react"
 
 interface FormData {
@@ -14,6 +14,49 @@ interface FormData {
   location: string
   latitude: number
   longitude: number
+}
+
+interface ErrorDetails {
+  error: string
+  details?: string | Record<string, any>
+}
+
+// Type guard to check if response is BirthChartData
+function isBirthChartData(data: unknown): data is BirthChartData {
+  if (!data || typeof data !== 'object') return false
+
+  const requiredPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars']
+  const chartData = data as any
+
+  // Check required properties and their types
+  if (!Array.isArray(chartData.planets) ||
+      typeof chartData.houses !== 'object' ||
+      !Array.isArray(chartData.aspects) ||
+      typeof chartData.name !== 'string' ||
+      typeof chartData.location !== 'string' ||
+      typeof chartData.date !== 'string' ||
+      typeof chartData.time !== 'string') {
+    return false
+  }
+
+  // Check for required planet positions
+  const missingPlanets = requiredPlanets.filter(planet => 
+    !chartData.planets.some((p: any) => p.name === planet)
+  )
+
+  if (missingPlanets.length > 0) {
+    console.error(`Missing essential planet positions: ${missingPlanets.join(', ')}`)
+    return false
+  }
+
+  return true
+}
+
+// Type guard to check if response is ErrorDetails
+function isErrorDetails(data: unknown): data is ErrorDetails {
+  if (!data || typeof data !== 'object') return false
+  const errorData = data as any
+  return typeof errorData.error === 'string'
 }
 
 export default function BirthChart() {
@@ -30,26 +73,49 @@ export default function BirthChart() {
         body: JSON.stringify(formData)
       })
 
-      const data = await response.json()
+      // Parse response data
+      let data: unknown
+      try {
+        data = await response.json()
+      } catch (err) {
+        console.error('Error parsing JSON response:', err)
+        throw new Error('Failed to parse server response')
+      }
 
       if (!response.ok) {
         // Handle API error response
-        if (data.error) {
-          if (data.details) {
-            // If there are detailed error messages, pass them along
-            throw new Error(JSON.stringify(data.details))
-          } else {
-            throw new Error(data.error)
-          }
+        if (isErrorDetails(data)) {
+          const errorMessage = data.details 
+            ? `${data.error}: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}`
+            : data.error
+
+          throw new Error(errorMessage)
         } else {
           throw new Error('Failed to calculate birth chart')
         }
       }
 
+      // Validate response data
+      if (!isBirthChartData(data)) {
+        throw new Error('Invalid birth chart data returned from server')
+      }
+
       setBirthChartData(data)
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error
       console.error('Error calculating birth chart:', error)
-      throw error // Let the form handle the error
+
+      // Format error message for display
+      let errorMessage = error.message
+      try {
+        // Check if the error message is a JSON string containing details
+        const parsed = JSON.parse(error.message)
+        errorMessage = typeof parsed === 'string' ? parsed : JSON.stringify(parsed, null, 2)
+      } catch {
+        // If not JSON, use the error message as is
+      }
+
+      throw new Error(errorMessage)
     }
   }
 

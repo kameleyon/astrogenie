@@ -224,7 +224,7 @@ export function analyzeBirthChart(data: BirthChartData): {
 
     console.debug('Final patterns:', allPatterns.map(p => ({
       name: p.name,
-      planets: p.planets.map(planet => `${planet.name} at ${planet.formatted} ${planet.sign}`).join(', ')
+      planets: p.planets.map(planet => `${planet.name} at ${planet.degree} ${planet.sign}`).join(', ')
     })))
 
     return {

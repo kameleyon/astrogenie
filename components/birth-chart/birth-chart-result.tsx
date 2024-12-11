@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { InteractiveWheel } from './interactive-wheel'
 import { PlanetsSection } from './planets-section'
 import { HousesSection } from './houses-section'
+import { SignUpSection } from './sign-up-section'
 //import { ChartPatterns } from './chart-patterns'
 //import { PersonalitySnapshot } from './personality-snapshot'
 import { CompatibilitySection } from './compatibility-section'
@@ -281,6 +282,10 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
 
           {/* Right Column */}
           <div className="lg:col-span-3 space-y-6 order-2 lg:order-3">
+          <div className="shadow-lg shadow-black/20 rounded-xl">
+              <SignUpSection />
+                
+            </div>
             <div className="shadow-lg shadow-black/20 rounded-xl">
               <TransitEffects
                 currentDate="January 15, 2024"
@@ -319,48 +324,7 @@ Format as a single, flowing paragraph that captures ${data.name}'s unique essenc
                 ]}
               />
             </div>
-            <div className="shadow-lg shadow-black/20 rounded-xl">
-              <CompatibilitySection
-                bestMatches={[
-                  {
-                    sign: "Aquarius",
-                    score: 9,
-                    reason: "Intellectual connection and shared ideals",
-                    elements: convertElements({ air: 3 })
-                  },
-                  {
-                    sign: "Leo",
-                    score: 8,
-                    reason: "Balancing opposition creates dynamic attraction",
-                    elements: convertElements({ fire: 3 })
-                  }
-                ]}
-                challengingMatches={[
-                  {
-                    sign: "Cancer",
-                    score: 5,
-                    reason: "Different approaches to emotional expression",
-                    elements: convertElements({ water: 3 })
-                  },
-                  {
-                    sign: "Capricorn",
-                    score: 6,
-                    reason: "May need to balance practicality with harmony",
-                    elements: convertElements({ earth: 3 })
-                  }
-                ]}
-                keyFactors={[
-                  {
-                    planet: "Venus",
-                    sign: "Leo",
-                    house: 11,
-                    influence: "Attracts through warmth and creativity",
-                    strength: "strong"
-                  }
-                ]}
-                generalAdvice="Your chart indicates a natural ability to create harmony in relationships, with a particular strength in balancing personal needs with those of others."
-              />
-            </div>
+            
           </div>
         </div>
       </div>

@@ -22,20 +22,6 @@ const nextConfig = {
       os: false,
     }
 
-    // Add asset relocator for .node files
-    config.module.rules.push({
-      test: /\.node$/,
-      use: [
-        {
-          loader: "@vercel/webpack-asset-relocator-loader",
-          options: {
-            production: !dev,
-            esModule: false,
-          },
-        },
-      ],
-    })
-
     if (isServer) {
       // Server-side configuration
       // Remove swisseph modules from externals to ensure they're bundled

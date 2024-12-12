@@ -1,12 +1,9 @@
 [build]
   command = """
-    npm install --build-from-source swisseph-v2 && \
-    mkdir -p .next/standalone/ephe && \
-    cp -r ephe/* .next/standalone/ephe/ && \
+    npm install --no-save --build-from-source swisseph-v2 && \
     npm run build
   """
   publish = ".next"
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF . ':(exclude)ephe/*'"
 
 [build.environment]
   NEXT_PUBLIC_SITE_URL = "https://astrogenie.netlify.app"
@@ -14,7 +11,7 @@
   NPM_VERSION = "9.x"
   ENABLE_NATIVE_MODULES = "true"
   LD_LIBRARY_PATH = "/usr/local/lib"
-  SWISSEPH_PATH = ".next/standalone/ephe"
+  SWISSEPH_PATH = "/opt/build/repo/ephe"
   NPM_CONFIG_OPTIONAL = "true"
   NODE_ENV = "production"
   NPM_CONFIG_BUILD_FROM_SOURCE = "true"
@@ -23,21 +20,11 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["ephe/**", ".next/standalone/ephe/**"]
-  external_node_modules = [
-    "react-dom",
-    "react-dom/server.edge",
-    "react-dom/server-rendering-stub",
-    "react-server-dom-webpack/client.edge",
-    "react-server-dom-webpack/server.edge",
-    "react-server-dom-webpack/server.node",
-    "@opentelemetry/api"
-  ]
+  included_files = ["ephe/**"]
 
 [functions."*"]
   included_files = [
     "ephe/**",
-    ".next/standalone/ephe/**",
     ".next/required-server-files.json",
     ".next/server/**/*",
     ".next/static/**/*",
@@ -49,15 +36,13 @@
   node_bundler = "esbuild"
   included_files = [
     "ephe/**",
-    ".next/standalone/ephe/**",
     ".next/required-server-files.json",
     ".next/server/**/*",
     ".next/static/**/*",
     "node_modules/swisseph-v2/**",
     "node_modules/swisseph/**"
   ]
-  external_node_modules = []
-  environment = { SWISSEPH_PATH = ".next/standalone/ephe" }
+  environment = { SWISSEPH_PATH = "/opt/build/repo/ephe" }
 
 [[headers]]
   for = "/api/*"

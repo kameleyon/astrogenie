@@ -150,26 +150,11 @@ async function initializeSwissEph() {
             }
         }
 
-        const [{ default: fs }, { default: path }] = await Promise.all([
-            import('fs'),
-            import('path')
-        ])
+        // Get ephemeris path from environment or default to local path
+        const ephePath = process.env.SWISSEPH_PATH || './ephe'
+        console.debug('Using ephemeris path:', ephePath)
 
-        const ephePath = path.join(process.cwd(), 'ephe')
-        
-        // Check if ephemeris directory exists
-        if (!fs.existsSync(ephePath)) {
-            fs.mkdirSync(ephePath, { recursive: true })
-        }
-
-        // Check if required files exist
-        const requiredFiles = ['seas_18.se1', 'semo_18.se1', 'sepl_18.se1']
-        const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(ephePath, file)))
-        
-        if (missingFiles.length > 0) {
-            throw new Error(`Missing required ephemeris files: ${missingFiles.join(', ')}. Please run download-ephe.js to download these files.`)
-        }
-
+        // Set ephemeris path if the function exists
         if ('swe_set_ephe_path' in swe) {
             swe.swe_set_ephe_path(ephePath)
         }

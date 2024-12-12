@@ -44,12 +44,12 @@ const nextConfig = {
       }
     }
 
-<<<<<<< HEAD
     // Add transpilePackages for moment-timezone
     config.resolve.alias = {
       ...config.resolve.alias,
       'moment-timezone': require.resolve('moment-timezone'),
-=======
+    }
+
     // Optimize chunks for production
     if (!dev) {
       config.optimization = {
@@ -77,7 +77,6 @@ const nextConfig = {
           },
         },
       }
->>>>>>> fix/moment-timezone-import
     }
 
     return config

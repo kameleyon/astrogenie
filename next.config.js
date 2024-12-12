@@ -22,14 +22,15 @@ const nextConfig = {
       os: false,
     }
 
-    // Add node-loader for .node files
+    // Add asset relocator for .node files
     config.module.rules.push({
       test: /\.node$/,
       use: [
         {
-          loader: "node-loader",
+          loader: "@vercel/webpack-asset-relocator-loader",
           options: {
-            name: "[name].[ext]",
+            production: !dev,
+            esModule: false,
           },
         },
       ],

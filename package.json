@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm install --no-save --build-from-source swisseph-v2 && next build",
     "start": "next start",
     "lint": "next lint",
     "prepare": "node download-ephe.js",
@@ -80,7 +80,8 @@
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^4.41.3",
-    "@types/moment-timezone": "^0.5.13"
+    "@types/moment-timezone": "^0.5.13",
+    "null-loader": "^4.0.1"
   },
   "engines": {
     "node": ">=18.0.0",

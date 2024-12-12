@@ -1,9 +1,5 @@
 [build]
-  command = """
-    npm install --no-save --build-from-source swisseph-v2 && \
-    cp -r node_modules/swisseph-v2/build/Release/* .next/standalone/ && \
-    npm run build
-  """
+  command = "npm run build"
   publish = ".next"
 
 [build.environment]
@@ -25,35 +21,6 @@
     "ephe/**",
     "node_modules/swisseph-v2/build/Release/**"
   ]
-
-[functions."*"]
-  included_files = [
-    "ephe/**",
-    ".next/required-server-files.json",
-    ".next/server/**/*",
-    ".next/static/**/*",
-    "node_modules/swisseph-v2/build/Release/**",
-    "node_modules/swisseph/**"
-  ]
-
-[functions.next_api_calculate]
-  node_bundler = "esbuild"
-  included_files = [
-    "ephe/**",
-    ".next/required-server-files.json",
-    ".next/server/**/*",
-    ".next/static/**/*",
-    "node_modules/swisseph-v2/build/Release/**",
-    "node_modules/swisseph/**"
-  ]
-  environment = { SWISSEPH_PATH = "/opt/build/repo/ephe" }
-
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-    Access-Control-Allow-Headers = "Content-Type"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Origin = "*"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

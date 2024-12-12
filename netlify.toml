@@ -34,13 +34,13 @@
   ]
 
 [functions.next_api_calculate]
+  node_bundler = "esbuild"
   included_files = [
     "ephe/**",
     ".next/required-server-files.json",
     ".next/server/**/*",
     ".next/static/**/*"
   ]
-  node_bundler = "esbuild"
   external_node_modules = ["swisseph"]
 
 [[headers]]

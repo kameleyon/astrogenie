@@ -75,13 +75,15 @@ async function loadAstrologyModules() {
     let swe;
     try {
         // Try loading swisseph-v2 first
-        swe = await import('swisseph-v2')
+        const swissephV2 = await import('swisseph-v2')
+        swe = swissephV2.default || swissephV2
         console.debug('Using swisseph-v2 module')
     } catch (err) {
         console.warn('Failed to load swisseph-v2, falling back to swisseph:', err)
         try {
             // Fallback to pure JavaScript swisseph
-            swe = await import('swisseph')
+            const swisseph = await import('swisseph')
+            swe = swisseph.default || swisseph
             console.debug('Using swisseph (pure JS) module')
         } catch (fallbackErr) {
             throw new Error('Failed to load Swiss Ephemeris modules. Please ensure either swisseph-v2 or swisseph is properly installed.')

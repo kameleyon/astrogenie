@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "prepare": "node download-ephe.js",
     "postinstall": "node download-ephe.js"
   },
   "dependencies": {

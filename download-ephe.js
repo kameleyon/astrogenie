@@ -37,9 +37,30 @@ async function downloadFile(url, destPath, retries = 0) {
             }).on('error', reject);
         });
 
-        await pipeline(response, fs.createWriteStream(destPath));
+        // Create temporary file first
+        const tempPath = `${destPath}.tmp`;
+        await pipeline(response, fs.createWriteStream(tempPath, { mode: 0o644 }));
+        
+        // Verify the downloaded file
+        const stats = await fs.stat(tempPath);
+        const file = EPHE_FILES.find(f => f.name === path.basename(destPath));
+        if (stats.size < file.minSize) {
+            throw new Error(`Downloaded file ${path.basename(url)} is too small: ${stats.size} bytes`);
+        }
+
+        // Move temporary file to final destination
+        await fs.rename(tempPath, destPath);
+        await fs.chmod(destPath, 0o644);
+        
         console.log(`Downloaded ${path.basename(url)}`);
     } catch (error) {
+        // Clean up temporary file if it exists
+        try {
+            await fs.unlink(`${destPath}.tmp`);
+        } catch (e) {
+            // Ignore cleanup errors
+        }
+
         if (retries < MAX_RETRIES) {
             console.log(`Retry ${retries + 1}/${MAX_RETRIES} for ${path.basename(url)}`);
             await sleep(RETRY_DELAY);
@@ -63,7 +84,7 @@ async function main() {
         // Create ephe directory if it doesn't exist
         const epheDir = path.join(process.cwd(), 'ephe');
         try {
-            await fs.mkdir(epheDir, { recursive: true });
+            await fs.mkdir(epheDir, { recursive: true, mode: 0o755 });
         } catch (err) {
             if (err.code !== 'EEXIST') {
                 throw err;

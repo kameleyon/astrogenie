@@ -15,35 +15,20 @@
 
 [functions]
   node_bundler = "esbuild"
+  included_files = ["ephe/**"]
+  external_node_modules = ["swisseph-v2", "swisseph"]
 
 [functions."*"]
-  external_node_modules = [
-    "swisseph-v2",
-    "swisseph",
-    "react-dom",
-    "react-server-dom-webpack",
-    "@opentelemetry/api"
-  ]
   included_files = [
-    "ephe/*.se1",
+    "ephe/**",
     ".next/required-server-files.json",
     ".next/server/**/*",
     ".next/static/**/*"
   ]
 
-[functions.___netlify-server-handler]
-  maxDuration = 30
-
 [functions.next_api_calculate]
-  external_node_modules = [
-    "swisseph-v2",
-    "swisseph",
-    "react-dom",
-    "react-server-dom-webpack",
-    "@opentelemetry/api"
-  ]
   included_files = [
-    "ephe/*.se1",
+    "ephe/**",
     ".next/required-server-files.json",
     ".next/server/**/*",
     ".next/static/**/*"

@@ -1,4 +1,5 @@
 import { ZodiacSign, PlanetPosition, HouseData } from '../../types/birth-chart'
+import path from 'path'
 
 // Zodiac signs
 const ZODIAC_SIGNS: readonly ZodiacSign[] = [
@@ -150,8 +151,8 @@ async function initializeSwissEph() {
             }
         }
 
-        // Get ephemeris path from environment or default to local path
-        const ephePath = process.env.SWISSEPH_PATH || './ephe'
+        // Get ephemeris path from environment or default to absolute path from project root
+        const ephePath = process.env.SWISSEPH_PATH || path.join(process.cwd(), 'ephe')
         console.debug('Using ephemeris path:', ephePath)
 
         // Set ephemeris path if the function exists

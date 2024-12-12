@@ -8,11 +8,11 @@ const pipeline = promisify(stream.pipeline);
 const EPHE_FILES = [
     { name: 'seas_18.se1', minSize: 200000 },   // Asteroid ephemeris
     { name: 'semo_18.se1', minSize: 1200000 },  // Moon ephemeris
-    { name: 'sepl_18.se1', minSize: 400000 }    // Planets ephemeris
+    { name: 'sepl_18.se1', minSize: 400000 }    // Combined planets ephemeris
 ];
 
-// Official Swiss Ephemeris download location
-const EPHE_BASE_URL = 'https://www.astro.com/ftp/swisseph/ephe/';
+// Swiss Ephemeris download location
+const EPHE_BASE_URL = 'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000; // 2 seconds
 

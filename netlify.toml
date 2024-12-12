@@ -1,8 +1,7 @@
 [build]
   command = """
-    mkdir -p /opt/build/repo/ephe && \
-    cp -r ephe/* /opt/build/repo/ephe/ && \
-    chmod 644 /opt/build/repo/ephe/* && \
+    mkdir -p .next/standalone/ephe && \
+    cp -r ephe/* .next/standalone/ephe/ && \
     npm run build
   """
   publish = ".next"
@@ -13,7 +12,7 @@
   NPM_VERSION = "9.x"
   ENABLE_NATIVE_MODULES = "true"
   LD_LIBRARY_PATH = "/usr/local/lib"
-  SWISSEPH_PATH = "/opt/build/repo/ephe"
+  SWISSEPH_PATH = ".next/standalone/ephe"
   NPM_CONFIG_OPTIONAL = "true"
   NODE_ENV = "production"
   NPM_CONFIG_BUILD_FROM_SOURCE = "true"
@@ -25,6 +24,7 @@
   external_node_modules = ["swisseph-v2", "swisseph"]
   included_files = [
     "ephe/**",
+    ".next/standalone/ephe/**",
     "node_modules/swisseph-v2/build/Release/**"
   ]
 

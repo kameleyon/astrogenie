@@ -1,5 +1,6 @@
 [build]
   command = """
+    npm install --build-from-source swisseph-v2 && \
     mkdir -p .next/standalone/ephe && \
     cp -r ephe/* .next/standalone/ephe/ && \
     npm run build
@@ -17,6 +18,8 @@
   NPM_CONFIG_OPTIONAL = "true"
   NODE_ENV = "production"
   NPM_CONFIG_BUILD_FROM_SOURCE = "true"
+  NPM_CONFIG_PLATFORM = "linux"
+  NPM_CONFIG_ARCH = "x64"
 
 [functions]
   node_bundler = "esbuild"

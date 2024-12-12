@@ -9,15 +9,14 @@
   NPM_VERSION = "9.x"
   ENABLE_NATIVE_MODULES = "true"
   LD_LIBRARY_PATH = "/usr/local/lib"
-  SWISSEPH_PATH = "/var/task/ephe"
+  SWISSEPH_PATH = "./ephe"
   NPM_CONFIG_OPTIONAL = "true"
   NODE_ENV = "production"
   NPM_CONFIG_BUILD_FROM_SOURCE = "true"
-  NETLIFY_USE_YARN = "false"
-  NPM_FLAGS = "--build-from-source --unsafe-perm"
 
 [functions]
   node_bundler = "esbuild"
+  included_files = ["ephe/**"]
   external_node_modules = [
     "react-dom",
     "react-dom/server.edge",
@@ -51,7 +50,7 @@
     "node_modules/swisseph/**"
   ]
   external_node_modules = ["swisseph-v2", "swisseph"]
-  environment = { SWISSEPH_PATH = "/var/task/ephe" }
+  environment = { SWISSEPH_PATH = "./ephe" }
 
 [[headers]]
   for = "/api/*"

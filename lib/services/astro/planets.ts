@@ -153,8 +153,8 @@ async function initializeSwissEph() {
             }
         }
 
-        // Get ephemeris path from environment or default to absolute path from project root
-        const ephePath = process.env.SWISSEPH_PATH || path.join(process.cwd(), 'ephe')
+        // Set ephemeris path
+        const ephePath = process.env.SWISSEPH_PATH || './ephe'
         console.debug('Using ephemeris path:', ephePath)
 
         // Set ephemeris path if the function exists

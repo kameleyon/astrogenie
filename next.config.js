@@ -30,11 +30,14 @@ const nextConfig = {
 
     if (isServer) {
       // Server-side configuration
-      config.externals = [
-        ...config.externals,
-        'swisseph-v2',
-        'swisseph'
-      ]
+      // Remove swisseph modules from externals to ensure they're bundled
+      const filteredExternals = config.externals.filter(external => {
+        if (typeof external === 'string') {
+          return !['swisseph-v2', 'swisseph'].includes(external);
+        }
+        return true;
+      });
+      config.externals = filteredExternals;
     } else {
       // Client-side configuration
       config.resolve.alias = {
@@ -85,7 +88,8 @@ const nextConfig = {
   // Configure experimental features
   experimental: {
     serverActions: true,
-    serverComponentsExternalPackages: ['swisseph-v2', 'swisseph'],
+    // Include swisseph modules in server components
+    serverComponentsExternalPackages: [],
   },
 
   // Configure redirects
@@ -106,7 +110,7 @@ const nextConfig = {
       },
     ]
   },
-  transpilePackages: ['moment-timezone'], // Add moment-timezone to transpilePackages
+  transpilePackages: ['moment-timezone', 'swisseph-v2', 'swisseph'], // Add Swiss Ephemeris modules to transpilePackages
 }
 
 module.exports = nextConfig

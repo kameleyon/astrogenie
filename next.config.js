@@ -25,7 +25,14 @@ const nextConfig = {
     // Add node-loader for .node files
     config.module.rules.push({
       test: /\.node$/,
-      loader: 'node-loader',
+      use: [
+        {
+          loader: "node-loader",
+          options: {
+            name: "[name].[ext]",
+          },
+        },
+      ],
     })
 
     if (isServer) {

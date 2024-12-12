@@ -38,6 +38,37 @@ const nextConfig = {
         return true;
       });
       config.externals = filteredExternals;
+
+      // Copy ephemeris files to output directory
+      config.plugins.push({
+        apply: (compiler) => {
+          compiler.hooks.afterEmit.tapPromise('CopyEphemerisFiles', async (compilation) => {
+            const fs = require('fs');
+            const path = require('path');
+            const { promisify } = require('util');
+            const copyFile = promisify(fs.copyFile);
+            const mkdir = promisify(fs.mkdir);
+
+            const sourceDir = path.join(process.cwd(), 'ephe');
+            const targetDir = path.join(process.cwd(), '.next/standalone/ephe');
+
+            try {
+              await mkdir(targetDir, { recursive: true });
+              const files = fs.readdirSync(sourceDir);
+              await Promise.all(
+                files.map(file =>
+                  copyFile(
+                    path.join(sourceDir, file),
+                    path.join(targetDir, file)
+                  )
+                )
+              );
+            } catch (err) {
+              console.error('Error copying ephemeris files:', err);
+            }
+          });
+        }
+      });
     } else {
       // Client-side configuration
       config.resolve.alias = {

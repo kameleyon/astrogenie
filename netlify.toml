@@ -16,7 +16,17 @@
 [functions]
   node_bundler = "esbuild"
   included_files = ["ephe/**"]
-  external_node_modules = ["swisseph-v2", "swisseph"]
+  external_node_modules = [
+    "swisseph-v2",
+    "swisseph",
+    "react-dom",
+    "react-dom/server.edge",
+    "react-dom/server-rendering-stub",
+    "react-server-dom-webpack/client.edge",
+    "react-server-dom-webpack/server.edge",
+    "react-server-dom-webpack/server.node",
+    "@opentelemetry/api"
+  ]
 
 [functions."*"]
   included_files = [

@@ -28,7 +28,21 @@ const nextConfig = {
       loader: 'node-loader',
     })
 
+    // Copy ephemeris files to output directory
     if (isServer) {
+      const CopyPlugin = require('copy-webpack-plugin')
+      config.plugins.push(
+        new CopyPlugin({
+          patterns: [
+            {
+              from: 'ephe',
+              to: '../ephe',
+              noErrorOnMissing: true,
+            },
+          ],
+        })
+      )
+
       // Server-side configuration
       config.externals = [
         ...config.externals,

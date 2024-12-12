@@ -1,6 +1,7 @@
 [build]
   command = """
     npm install --no-save --build-from-source swisseph-v2 && \
+    cp -r node_modules/swisseph-v2/build/Release/* .next/standalone/ && \
     npm run build
   """
   publish = ".next"
@@ -20,7 +21,10 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["ephe/**"]
+  included_files = [
+    "ephe/**",
+    "node_modules/swisseph-v2/build/Release/**"
+  ]
 
 [functions."*"]
   included_files = [
@@ -28,7 +32,7 @@
     ".next/required-server-files.json",
     ".next/server/**/*",
     ".next/static/**/*",
-    "node_modules/swisseph-v2/**",
+    "node_modules/swisseph-v2/build/Release/**",
     "node_modules/swisseph/**"
   ]
 
@@ -39,7 +43,7 @@
     ".next/required-server-files.json",
     ".next/server/**/*",
     ".next/static/**/*",
-    "node_modules/swisseph-v2/**",
+    "node_modules/swisseph-v2/build/Release/**",
     "node_modules/swisseph/**"
   ]
   environment = { SWISSEPH_PATH = "/opt/build/repo/ephe" }

@@ -41,7 +41,8 @@
     ".next/server/**/*",
     ".next/static/**/*"
   ]
-  external_node_modules = ["swisseph"]
+  external_node_modules = []
+  environment = { SWISSEPH_PATH = "/var/task/ephe" }
 
 [[headers]]
   for = "/api/*"

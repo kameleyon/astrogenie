@@ -9,6 +9,7 @@ import {
     HOUSE_SYSTEMS
 } from './planets'
 import moment from 'moment-timezone'
+import path from 'path'
 
 interface BirthChartInput {
     name: string
@@ -85,6 +86,14 @@ async function loadAstrologyModules() {
         } catch (fallbackErr) {
             throw new Error('Failed to load Swiss Ephemeris modules. Please ensure either swisseph-v2 or swisseph is properly installed.')
         }
+    }
+
+    // Set ephemeris path
+    const ephePath = process.env.SWISSEPH_PATH || path.join(process.cwd(), 'ephe')
+    console.debug('Using ephemeris path:', ephePath)
+
+    if ('swe_set_ephe_path' in swe) {
+        swe.swe_set_ephe_path(ephePath)
     }
 
     return { swe: normalizeSwissEph(swe), moment }

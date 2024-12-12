@@ -24,7 +24,12 @@
     "react-server-dom-webpack",
     "@opentelemetry/api"
   ]
-  included_files = ["ephe/*.se1"]
+  included_files = [
+    "ephe/*.se1",
+    ".next/required-server-files.json",
+    ".next/server/**/*",
+    ".next/static/**/*"
+  ]
 
 [functions.___netlify-server-handler]
   maxDuration = 30
@@ -37,7 +42,12 @@
     "react-server-dom-webpack",
     "@opentelemetry/api"
   ]
-  included_files = ["ephe/*.se1"]
+  included_files = [
+    "ephe/*.se1",
+    ".next/required-server-files.json",
+    ".next/server/**/*",
+    ".next/static/**/*"
+  ]
 
 [[headers]]
   for = "/api/*"

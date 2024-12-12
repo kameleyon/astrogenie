@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm install swisseph-v2 && npm run build"
   publish = ".next"
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF . ':(exclude)ephe/*'"
 
@@ -22,7 +22,9 @@
     "react-server-dom-webpack/client.edge",
     "react-server-dom-webpack/server.edge",
     "react-server-dom-webpack/server.node",
-    "@opentelemetry/api"
+    "@opentelemetry/api",
+    "swisseph-v2",
+    "swisseph"
   ]
 
 [functions."*"]
@@ -30,7 +32,9 @@
     "ephe/**",
     ".next/required-server-files.json",
     ".next/server/**/*",
-    ".next/static/**/*"
+    ".next/static/**/*",
+    "node_modules/swisseph-v2/**",
+    "node_modules/swisseph/**"
   ]
 
 [functions.next_api_calculate]
@@ -39,9 +43,11 @@
     "ephe/**",
     ".next/required-server-files.json",
     ".next/server/**/*",
-    ".next/static/**/*"
+    ".next/static/**/*",
+    "node_modules/swisseph-v2/**",
+    "node_modules/swisseph/**"
   ]
-  external_node_modules = []
+  external_node_modules = ["swisseph-v2", "swisseph"]
   environment = { SWISSEPH_PATH = "/var/task/ephe" }
 
 [[headers]]

@@ -154,14 +154,38 @@ async function initializeSwissEph() {
             }
         }
 
-        // Set ephemeris path - handle both edge function and regular environments
-        const ephePath = process.env.SWISSEPH_PATH || 
-                        (process.env.NETLIFY ? '/var/task/ephe' : './ephe')
-        console.debug('Using ephemeris path:', ephePath)
+        // Set ephemeris path - check multiple locations
+        const possiblePaths = [
+            process.env.SWISSEPH_PATH,
+            './.next/standalone/ephe',
+            './ephe',
+        ].filter(Boolean) as string[];
 
-        // Set ephemeris path if the function exists
+        let ephePath = possiblePaths[0]; // Default to first path
+        let pathFound = false;
+
+        for (const testPath of possiblePaths) {
+            try {
+                const fs = require('fs');
+                const testFile = path.join(testPath, 'seas_18.se1');
+                if (fs.existsSync(testFile)) {
+                    ephePath = testPath;
+                    pathFound = true;
+                    break;
+                }
+            } catch (err) {
+                console.debug(`Path ${testPath} not accessible:`, err);
+            }
+        }
+
+        if (!pathFound) {
+            console.warn('No valid ephemeris path found, using default:', ephePath);
+        } else {
+            console.debug('Using ephemeris path:', ephePath);
+        }
+
         if ('swe_set_ephe_path' in swe) {
-            swe.swe_set_ephe_path(ephePath)
+            swe.swe_set_ephe_path(ephePath);
         }
 
         return normalizeSwissEph(swe)

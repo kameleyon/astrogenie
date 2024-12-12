@@ -17,16 +17,6 @@ const nextConfig = {
       os: false,
     }
 
-    // Handle .node files
-    config.module.rules.push({
-      test: /\.node$/,
-      use: [
-        {
-          loader: 'null-loader',
-        },
-      ],
-    })
-
     if (isServer) {
       // Server-side configuration
       // Remove swisseph modules from externals to ensure they're bundled
@@ -37,6 +27,12 @@ const nextConfig = {
         return true;
       });
       config.externals = filteredExternals;
+
+      // Handle .node files
+      config.module.rules.push({
+        test: /\.node$/,
+        loader: 'null-loader',
+      });
     } else {
       // Client-side configuration
       config.resolve.alias = {
@@ -62,12 +58,7 @@ const nextConfig = {
     serverComponentsExternalPackages: ['swisseph-v2', 'swisseph'],
   },
 
-  // Configure redirects
-  async redirects() {
-    return []
-  },
-
-  // Configure headers
+  // Configure headers for better font loading and caching
   async headers() {
     return [
       {
@@ -78,9 +69,26 @@ const nextConfig = {
           { key: 'Access-Control-Allow-Headers', value: 'Content-Type' },
         ],
       },
+      {
+        source: '/fonts/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+        ],
+      },
     ]
   },
-  transpilePackages: ['moment-timezone', 'swisseph-v2', 'swisseph'], // Add Swiss Ephemeris modules to transpilePackages
+
+  // Configure redirects for compatibility route
+  async redirects() {
+    return [
+      {
+        source: '/compatibility',
+        destination: '/birth-chart',
+        permanent: false,
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

@@ -149,12 +149,14 @@ async function initializeSwissEph() {
                 swe = swisseph.default || swisseph
                 console.debug('Using swisseph (pure JS) module')
             } catch (fallbackErr) {
+                console.error('Failed to load Swiss Ephemeris modules:', { v2Error: err, jsError: fallbackErr })
                 throw new Error('Failed to load Swiss Ephemeris modules. Please ensure either swisseph-v2 or swisseph is properly installed.')
             }
         }
 
-        // Set ephemeris path
-        const ephePath = process.env.SWISSEPH_PATH || './ephe'
+        // Set ephemeris path - handle both edge function and regular environments
+        const ephePath = process.env.SWISSEPH_PATH || 
+                        (process.env.NETLIFY ? '/var/task/ephe' : './ephe')
         console.debug('Using ephemeris path:', ephePath)
 
         // Set ephemeris path if the function exists
@@ -165,6 +167,7 @@ async function initializeSwissEph() {
         return normalizeSwissEph(swe)
     } catch (err) {
         const error = err as Error
+        console.error('Swiss Ephemeris initialization failed:', error)
         throw new Error(`Swiss Ephemeris initialization failed: ${error.message || 'Unknown error'}`)
     }
 }

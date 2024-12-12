@@ -86,12 +86,14 @@ async function loadAstrologyModules() {
             swe = swisseph.default || swisseph
             console.debug('Using swisseph (pure JS) module')
         } catch (fallbackErr) {
+            console.error('Failed to load Swiss Ephemeris modules:', { v2Error: err, jsError: fallbackErr })
             throw new Error('Failed to load Swiss Ephemeris modules. Please ensure either swisseph-v2 or swisseph is properly installed.')
         }
     }
 
-    // Set ephemeris path
-    const ephePath = process.env.SWISSEPH_PATH || './ephe'
+    // Set ephemeris path - handle both edge function and regular environments
+    const ephePath = process.env.SWISSEPH_PATH || 
+                    (process.env.NETLIFY ? '/var/task/ephe' : './ephe')
     console.debug('Using ephemeris path:', ephePath)
 
     if ('swe_set_ephe_path' in swe) {

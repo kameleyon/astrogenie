@@ -1,5 +1,10 @@
 [build]
-  command = "npm run build"
+  command = """
+    mkdir -p /opt/build/repo/ephe && \
+    cp -r ephe/* /opt/build/repo/ephe/ && \
+    chmod 644 /opt/build/repo/ephe/* && \
+    npm run build
+  """
   publish = ".next"
 
 [build.environment]
@@ -17,6 +22,7 @@
 
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = ["swisseph-v2", "swisseph"]
   included_files = [
     "ephe/**",
     "node_modules/swisseph-v2/build/Release/**"
@@ -24,3 +30,16 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+    Access-Control-Allow-Origin = "*"

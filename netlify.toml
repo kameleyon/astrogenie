@@ -5,39 +5,46 @@
 
 [build.environment]
   NEXT_PUBLIC_SITE_URL = "https://astrogenie.netlify.app"
-  NODE_VERSION = "18"
-  NPM_VERSION = "9"
+  NODE_VERSION = "18.x"
+  NPM_VERSION = "9.x"
   ENABLE_NATIVE_MODULES = "true"
-  LD_LIBRARY_PATH = "/usr/lib64"
-  SWISSEPH_PATH = "/opt/build/repo/ephe"
-  NPM_CONFIG_OPTIONAL = "false"
+  LD_LIBRARY_PATH = "/usr/local/lib"
+  SWISSEPH_PATH = "./ephe"
+  NPM_CONFIG_OPTIONAL = "true"
   NODE_ENV = "production"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
 
 [functions]
   node_bundler = "esbuild"
+
+[functions."*"]
   external_node_modules = [
     "swisseph-v2",
-    "swisseph"
+    "swisseph",
+    "react-dom",
+    "react-server-dom-webpack",
+    "@opentelemetry/api"
   ]
   included_files = ["ephe/*.se1"]
 
 [functions.___netlify-server-handler]
   maxDuration = 30
 
-[functions."next_api_calculate"]
+[functions.next_api_calculate]
+  external_node_modules = [
+    "swisseph-v2",
+    "swisseph",
+    "react-dom",
+    "react-server-dom-webpack",
+    "@opentelemetry/api"
+  ]
   included_files = ["ephe/*.se1"]
-  external_node_modules = ["swisseph-v2", "swisseph"]
 
 [[headers]]
   for = "/api/*"
   [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Origin = "*"
 
-[dev]
-  framework = "next"
-  targetPort = 3000
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

@@ -1,5 +1,5 @@
 [build]
-  command = "npm install swisseph-v2 && npm run build"
+  command = "npm uninstall swisseph-v2 && npm install --no-save swisseph-v2 && npm run build"
   publish = ".next"
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF . ':(exclude)ephe/*'"
 

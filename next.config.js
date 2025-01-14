@@ -85,7 +85,7 @@ const nextConfig = {
   // Configure experimental features
   experimental: {
     serverActions: true,
-    serverComponentsExternalPackages: ['swisseph-v2', 'swisseph'],
+    serverComponentsExternalPackages: ['swisseph-v2', 'swisseph', 'tz-lookup', 'moment-timezone'],
   },
 
   // Configure redirects

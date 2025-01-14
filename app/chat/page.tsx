@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { Send, Plus, Bookmark, Menu, Loader2 } from "lucide-react"
+import { Send, Plus, Bookmark, Menu, Loader2, User } from "lucide-react"
+import Link from "next/link"
 import Image from "next/image"
 import { useChat } from "@/hooks/use-chat"
 import { useToast } from "@/hooks/use-toast"
@@ -27,6 +28,9 @@ export default function ChatPage() {
     sun_sign: string | null;
     moon_sign: string | null;
     ascendant: string | null;
+    human_design_type: string | null;
+    life_path_number: string | null;
+    cardology_card: string | null;
   } | null>(null)
   const { messages, loading, error, sendMessage } = useChat()
   const { toast } = useToast()
@@ -41,7 +45,7 @@ export default function ChatPage() {
         // Fetch birth chart info
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('sun_sign, moon_sign, ascendant')
+          .select('sun_sign, moon_sign, ascendant, human_design_type, life_path_number, cardology_card')
           .eq('id', session.user.id)
           .single()
 
@@ -80,16 +84,21 @@ export default function ChatPage() {
       <div className="flex flex-1">
         {/* Slim Sidebar */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-50 w-16  bg-white/5 flex flex-col items-center py-4 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+          "min-h-[calc(100vh-7.5rem)] fixed inset-y-0 left-0 z-50 w-16 bg-white/5 flex flex-col items-center py-4 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
           showSidebar ? "translate-x-0" : "-translate-x-full"
         )}>
-          <div className="flex flex-col items-center space-y-6 min-h-[calc(100vh-9.5rem)]">
+          <div className="flex flex-col items-center space-y-6">
             <Image
               src="/astrogenieorange.png"
               alt="AstroGenie Logo"
               width={32}
               height={32}
             />
+            <Link href="/birth-chart">
+              <Button variant="ghost" size="icon">
+                <User className="h-5 w-5 text-gray-400" />
+              </Button>
+            </Link>
             <Button variant="ghost" size="icon">
               <Menu className="h-5 w-5 text-gray-400" />
             </Button>
@@ -103,53 +112,79 @@ export default function ChatPage() {
         </aside>
 
         <div className="flex-1 flex flex-col">
-          {/* Header with gradient 
-          <header className="bg-gradient-to-r from-[#D15200] to-[#FFA600] p-4 text-white">
-            <div className="max-w-6xl mx-auto flex justify-between items-center">
-              <h1 className="text-xl font-semibold">
+          {/* Mobile Header */}
+          <header className="md:hidden bg-gradient-to-r from-[#D15200] to-[#FFA600] p-4 text-white">
+            <div className="flex justify-between items-center">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setShowSidebar(!showSidebar)}
+                className="text-white"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <h1 className="text-3xl font-medium text-white/80">
                 Hello {userEmail ? userEmail.split('@')[0] : 'User'}
               </h1>
             </div>
-          </header>*/}
+          </header>
 
           {/* Main content area */}
-          <div className="flex flex-1 gap-4 p-4 max-w-6xl mx-auto w-full min-h-[calc(100vh-14rem)]">
+          <div className="flex flex-col md:flex-row flex-1 gap-4 p-4 max-w-6xl mx-auto w-full">
             {/* Birth Chart Info Frame */}
-            <div className="w-1/3 bg-gradient-to-r from-[#D15200] to-[#FFA600] text-white rounded-lg p-4 border dark:border-gray-700">
-            <div className="max-w-6xl mx-auto flex justify-center">
-            <Image
-              src="/astrogenietribal.png"
-              alt="AstroGenie Logo"
-              width={200}
-              height={200}
-            />
-            </div>
-            <div className="max-w-6xl mx-auto flex justify-between items-center">
-              <h1 className="text-2xl text-white/80 mt-6 font-normal">
-                Hello {userEmail ? userEmail.split('@')[0] : 'User'}
-              </h1>
-            </div>
-              <h2 className="text-lg mt-6 font-normal mb-4 text-white/80">Quick Snapsho of you</h2>
+            <div className="hidden md:block w-1/3 bg-gradient-to-r from-[#D15200] to-[#FFA600] text-white rounded-lg p-4 border dark:border-gray-700">
+              <div className="max-w-6xl mx-auto flex justify-center">
+                <Image
+                  src="/astrogenietribal.png"
+                  alt="AstroGenie Logo"
+                  width={200}
+                  height={200}
+                />
+              </div>
+              <div className="max-w-6xl mx-auto flex justify-between items-center">
+                <h1 className="text-2xl text-white/80 mt-6 font-normal">
+                  Hello {userEmail ? userEmail.split('@')[0] : 'User'}
+                </h1>
+              </div>
+              <h2 className="text-lg mt-6 font-normal mb-4 text-white/80">Quick Snapshot of you</h2>
               {birthChart ? (
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <p className="text-md text-[#020817]">Sun Sign</p>
-                    <p className="font-medium">{birthChart.sun_sign || 'Not set'}</p>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-md text-[#020817]">Sun Sign</p>
+                      <p className="font-medium">{birthChart.sun_sign || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <p className="text-md text-[#020817]">Moon Sign</p>
+                      <p className="font-medium">{birthChart.moon_sign || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <p className="text-md text-[#020817]">Ascendant</p>
+                      <p className="font-medium">{birthChart.ascendant || 'Not set'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-md text-[#020817]">Moon Sign</p>
-                    <p className="font-medium">{birthChart.moon_sign || 'Not set'}</p>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-md text-[#020817]">Human Design</p>
+                      <p className="font-medium">{birthChart.human_design_type || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <p className="text-md text-[#020817]">Life Path</p>
+                      <p className="font-medium">{birthChart.life_path_number || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <p className="text-md text-[#020817]">Birth Card</p>
+                      <p className="font-medium">{birthChart.cardology_card || 'Not set'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-md text-[#020817]">Ascendant</p>
-                    <p className="font-medium mb-6">{birthChart.ascendant || 'Not set'}</p>
+                  <div className="col-span-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full bg-[white]/50 text-[#D15200] hover:bg-white/70 border-[#D15200]/20"
+                    >
+                      View Full Chart
+                    </Button>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full bg-[white]/50 text-[#D15200] hover:bg-white/70 border-[#D15200]/20"
-                  >
-                    View Full Chart
-                  </Button>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -167,10 +202,10 @@ export default function ChatPage() {
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 flex flex-col bg-white dark:bg-[#020817] rounded-lg border dark:border-gray-700">
+            <div className="min-h-[calc(100vh-14rem)] flex-1 flex flex-col bg-white/5 dark:bg-[#020817]/40 rounded-xl border dark:border-gray-700 shadow-xl ">
               {/* Messages Area */}
               <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4 max-w-4xl mx-auto">
+                <div className="space-y-4 max-w-4xl mx-auto ">
                   {messages.map((msg, i) => (
                     <div
                       key={i}
@@ -250,13 +285,6 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
-
-      {/* Footer 
-      <footer className="border-t dark:border-gray-800 py-4">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <p className="text-sm text-gray-500">© 2024 Astrogenie.ai. All rights reserved.</p>
-        </div>
-      </footer>*/}
 
       {/* Overlay for mobile sidebar */}
       {showSidebar && (

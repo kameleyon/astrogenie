@@ -9,6 +9,7 @@ import { Send, Plus, Bookmark, Menu, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { useChat } from "@/hooks/use-chat"
 import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/lib/supabase/client"
 
 const suggestedQuestions = [
   "will I get the job at the dealership",
@@ -21,9 +22,37 @@ const suggestedQuestions = [
 export default function ChatPage() {
   const [message, setMessage] = useState("")
   const [showSidebar, setShowSidebar] = useState(false)
+  const [userEmail, setUserEmail] = useState("")
+  const [birthChart, setBirthChart] = useState<{
+    sun_sign: string | null;
+    moon_sign: string | null;
+    ascendant: string | null;
+  } | null>(null)
   const { messages, loading, error, sendMessage } = useChat()
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        setUserEmail(session.user.email || "")
+        
+        // Fetch birth chart info
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('sun_sign, moon_sign, ascendant')
+          .eq('id', session.user.id)
+          .single()
+
+        if (!error && profile) {
+          setBirthChart(profile)
+        }
+      }
+    }
+
+    fetchUserData()
+  }, [])
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -47,156 +76,187 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar - Only visible on desktop or when toggled on mobile */}
-      <aside 
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-[#020817] flex-col justify-between transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+    <div className="max-h-screen flex flex-col">
+      <div className="flex flex-1">
+        {/* Slim Sidebar */}
+        <aside className={cn(
+          "fixed inset-y-0 left-0 z-50 w-16  bg-white/5 flex flex-col items-center py-4 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
           showSidebar ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="flex flex-col p-4 space-y-4">
-          <div className="flex items-center space-x-2">
+        )}>
+          <div className="flex flex-col items-center space-y-6 min-h-[calc(100vh-9.5rem)]">
             <Image
               src="/astrogenieorange.png"
               alt="AstroGenie Logo"
-              width={40}
-              height={40}
+              width={32}
+              height={32}
             />
-            <span className="text-white font-semibold">ASTROGENIE</span>
-          </div>
-          <p className="text-sm text-gray-400">
-            Your AI-powered Agent for personalized guidance and insights
-          </p>
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold text-white mb-4">Birth Chart Information</h3>
-            <p className="text-sm text-gray-400 mb-4">
-              Complete your birth chart information to get personalized insights
-            </p>
-            <Button 
-              variant="outline" 
-              className="w-full bg-[#D15200]/10 text-[#D15200] hover:bg-[#D15200]/20 border-[#D15200]/20"
-            >
-              Set Up Birth Chart
+            <Button variant="ghost" size="icon">
+              <Menu className="h-5 w-5 text-gray-400" />
+            </Button>
+            <Button variant="ghost" size="icon">
+              <Plus className="h-5 w-5 text-gray-400" />
+            </Button>
+            <Button variant="ghost" size="icon">
+              <Bookmark className="h-5 w-5 text-gray-400" />
             </Button>
           </div>
-        </div>
-        <div className="p-4">
-          <p className="text-xs text-gray-500">© 2024 Astrogenie.ai. All rights reserved.</p>
-        </div>
-      </aside>
+        </aside>
 
-      {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col bg-white dark:bg-[#020817]">
-        {/* Chat Header - Mobile */}
-        <header className="md:hidden p-4 border-b">
-          <div className="flex items-center justify-between">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setShowSidebar(!showSidebar)}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center space-x-2">
-              <Image
-                src="/astrogenieorange.png"
-                alt="AstroGenie Logo"
-                width={32}
-                height={32}
-              />
-              <span className="font-semibold">ASTROGENIE</span>
+        <div className="flex-1 flex flex-col">
+          {/* Header with gradient 
+          <header className="bg-gradient-to-r from-[#D15200] to-[#FFA600] p-4 text-white">
+            <div className="max-w-6xl mx-auto flex justify-between items-center">
+              <h1 className="text-xl font-semibold">
+                Hello {userEmail ? userEmail.split('@')[0] : 'User'}
+              </h1>
             </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="icon">
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Bookmark className="h-4 w-4" />
-              </Button>
+          </header>*/}
+
+          {/* Main content area */}
+          <div className="flex flex-1 gap-4 p-4 max-w-6xl mx-auto w-full min-h-[calc(100vh-14rem)]">
+            {/* Birth Chart Info Frame */}
+            <div className="w-1/3 bg-gradient-to-r from-[#D15200] to-[#FFA600] text-white rounded-lg p-4 border dark:border-gray-700">
+            <div className="max-w-6xl mx-auto flex justify-center">
+            <Image
+              src="/astrogenietribal.png"
+              alt="AstroGenie Logo"
+              width={200}
+              height={200}
+            />
             </div>
-          </div>
-        </header>
-
-        {/* Messages Area */}
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4 max-w-4xl mx-auto">
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "flex",
-                  msg.isUser ? "justify-end" : "justify-start"
-                )}
-              >
-                <div
-                  className={cn(
-                    "max-w-[80%] rounded-lg p-4",
-                    msg.isUser
-                      ? "bg-gradient-to-r from-[#D15200] to-[#FFA600] text-white"
-                      : "bg-gray-100 dark:bg-gray-800"
-                  )}
-                >
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-
-            {/* Loading indicator */}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                </div>
-              </div>
-            )}
-
-            {/* Suggested Questions - Show only when no messages */}
-            {messages.length === 0 && (
-              <div className="flex flex-wrap gap-2 justify-center mt-8">
-                {suggestedQuestions.map((q, i) => (
-                  <button
-                    key={i}
-                    className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 
-                             rounded-full px-4 py-2 text-sm transition-colors"
-                    onClick={() => setMessage(q)}
+            <div className="max-w-6xl mx-auto flex justify-between items-center">
+              <h1 className="text-2xl text-white/80 mt-6 font-normal">
+                Hello {userEmail ? userEmail.split('@')[0] : 'User'}
+              </h1>
+            </div>
+              <h2 className="text-lg mt-6 font-normal mb-4 text-white/80">Quick Snapsho of you</h2>
+              {birthChart ? (
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <p className="text-md text-[#020817]">Sun Sign</p>
+                    <p className="font-medium">{birthChart.sun_sign || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-md text-[#020817]">Moon Sign</p>
+                    <p className="font-medium">{birthChart.moon_sign || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-md text-[#020817]">Ascendant</p>
+                    <p className="font-medium mb-6">{birthChart.ascendant || 'Not set'}</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-[white]/50 text-[#D15200] hover:bg-white/70 border-[#D15200]/20"
                   >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Invisible element for auto-scroll */}
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-
-        {/* Input Area */}
-        <div className="p-4 border-t">
-          <div className="max-w-4xl mx-auto flex gap-2">
-            <Input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Ask me anything"
-              className="flex-1"
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-              disabled={loading}
-            />
-            <Button 
-              onClick={handleSend}
-              className="bg-gradient-to-r from-[#D15200] to-[#FFA600] text-white hover:opacity-90"
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                    View Full Chart
+                  </Button>
+                </div>
               ) : (
-                <Send className="h-4 w-4" />
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Complete your birth chart information to get personalized insights
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-[#D15200]/10 text-[#D15200] hover:bg-[#D15200]/20 border-[#D15200]/20"
+                  >
+                    Set Up Birth Chart
+                  </Button>
+                </div>
               )}
-            </Button>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 flex flex-col bg-white dark:bg-[#020817] rounded-lg border dark:border-gray-700">
+              {/* Messages Area */}
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-4 max-w-4xl mx-auto">
+                  {messages.map((msg, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "flex",
+                        msg.isUser ? "justify-end" : "justify-start"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "max-w-[80%] rounded-lg p-4",
+                          msg.isUser
+                            ? "bg-gradient-to-r from-[#D15200] to-[#FFA600] text-white"
+                            : "bg-gray-100 dark:bg-gray-800"
+                        )}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Loading indicator */}
+                  {loading && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Suggested Questions - Show only when no messages */}
+                  {messages.length === 0 && (
+                    <div className="flex flex-wrap gap-2 justify-center mt-8">
+                      {suggestedQuestions.map((q, i) => (
+                        <button
+                          key={i}
+                          className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 
+                                   rounded-full px-4 py-2 text-sm transition-colors"
+                          onClick={() => setMessage(q)}
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Invisible element for auto-scroll */}
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+
+              {/* Input Area */}
+              <div className="p-4 border-t dark:border-gray-700">
+                <div className="flex gap-2">
+                  <Input
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Ask me anything"
+                    className="flex-1"
+                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+                    disabled={loading}
+                  />
+                  <Button 
+                    onClick={handleSend}
+                    className="bg-gradient-to-r from-[#D15200] to-[#FFA600] text-white hover:opacity-90"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
+
+      {/* Footer 
+      <footer className="border-t dark:border-gray-800 py-4">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <p className="text-sm text-gray-500">© 2024 Astrogenie.ai. All rights reserved.</p>
+        </div>
+      </footer>*/}
 
       {/* Overlay for mobile sidebar */}
       {showSidebar && (

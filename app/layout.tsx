@@ -8,7 +8,7 @@ import type { Metadata } from 'next'
 
 const lato = Lato({ 
   subsets: ['latin'],
-  weight: ['100', '300', '400', '700', '900'],
+  weight: ['100', '300', '400', '700'],
   variable: '--font-lato'
 })
 

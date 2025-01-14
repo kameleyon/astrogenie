@@ -59,7 +59,7 @@ export function LoginForm({ onSignUpClick }: { onSignUpClick: () => void }) {
       addDebugInfo("Checking subscription status...")
       const { data: subscription, error: subError } = await supabase
         .from('subscriptions')
-        .select('*')
+        .select('status')
         .eq('user_id', data.user.id)
         .single()
 
@@ -75,17 +75,12 @@ export function LoginForm({ onSignUpClick }: { onSignUpClick: () => void }) {
       // Wait for toast to show before redirecting
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // If user has subscription, redirect to chat
-      // Otherwise, redirect to checkout
-      if (subscription) {
-        addDebugInfo("Subscription found, redirecting to chat...")
-        // Force a hard navigation to /chat
-        window.location.href = '/chat'
-        // Fallback in case the above doesn't work
-        setTimeout(() => {
-          router.push('/chat')
-        }, 100)
+      // Check if subscription is active or trial
+      if (subscription && (subscription.status === 'active' || subscription.status === 'trial')) {
+        addDebugInfo(`Active subscription found (${subscription.status}), redirecting to chat...`)
+        router.push('/chat')
       } else {
+        addDebugInfo("No active subscription found, redirecting to checkout...")
         addDebugInfo("No subscription, creating checkout session...")
         const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke(
           'create-checkout',

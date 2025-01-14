@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { motion } from "framer-motion"
+import { useState, useEffect } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,9 +18,21 @@ export function LoginForm({ onSignUpClick }: { onSignUpClick: () => void }) {
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string[]>([])
+
+  const addDebugInfo = (info: string) => {
+    console.log('Debug:', info)
+    setDebugInfo(prev => [...prev, info])
+    toast({
+      title: "Debug Info",
+      description: info,
+      duration: 5000,
+    })
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setDebugInfo([]) // Reset debug info
     
     if (!email || !password) {
       toast({
@@ -34,6 +45,7 @@ export function LoginForm({ onSignUpClick }: { onSignUpClick: () => void }) {
 
     try {
       setLoading(true)
+      addDebugInfo("Starting login process...")
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -41,15 +53,65 @@ export function LoginForm({ onSignUpClick }: { onSignUpClick: () => void }) {
       })
 
       if (error) throw error
+      addDebugInfo(`Login successful for user: ${data.user.id}`)
+
+      // Check subscription status
+      addDebugInfo("Checking subscription status...")
+      const { data: subscription, error: subError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', data.user.id)
+        .single()
+
+      if (subError && subError.code !== 'PGRST116') {
+        throw subError
+      }
 
       toast({
         title: "Success",
         description: "Successfully logged in",
       })
 
-      router.push("/chat")
+      // Wait for toast to show before redirecting
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // If user has subscription, redirect to chat
+      // Otherwise, redirect to checkout
+      if (subscription) {
+        addDebugInfo("Subscription found, redirecting to chat...")
+        // Force a hard navigation to /chat
+        window.location.href = '/chat'
+        // Fallback in case the above doesn't work
+        setTimeout(() => {
+          router.push('/chat')
+        }, 100)
+      } else {
+        addDebugInfo("No subscription, creating checkout session...")
+        const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke(
+          'create-checkout',
+          {
+            body: {
+              successUrl: `${window.location.origin}/billing/success`,
+              priceId: 'price_1QcWIaGTXKQOsgznnZmYCk1q',
+            }
+          }
+        )
+
+        if (checkoutError) {
+          addDebugInfo(`Checkout error: ${checkoutError.message}`)
+          throw checkoutError
+        }
+        if (!checkoutData?.url) {
+          addDebugInfo("No checkout URL in response")
+          throw new Error('No checkout URL in response')
+        }
+
+        addDebugInfo("Redirecting to checkout...")
+        window.location.href = checkoutData.url
+      }
 
     } catch (error: any) {
+      addDebugInfo(`Error: ${error.message}`)
       toast({
         title: "Error",
         description: error.message || "An error occurred during login",
@@ -61,12 +123,7 @@ export function LoginForm({ onSignUpClick }: { onSignUpClick: () => void }) {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-full max-w-md space-y-6 p-6 bg-card rounded-lg border border-[#D15200]/20  bg-white/5 shadow-xl"
-    >
+    <div className="w-full max-w-md space-y-6 p-6 bg-card rounded-lg border border-[#D15200]/20 bg-white/5 shadow-xl">
       <div className="space-y-2 text-center">
         <h2 className="text-2xl font-semibold tracking-tight">Welcome back</h2>
         <p className="text-sm text-muted-foreground">
@@ -153,6 +210,18 @@ export function LoginForm({ onSignUpClick }: { onSignUpClick: () => void }) {
           </button>
         </div>
       </form>
-    </motion.div>
+
+      {/* Debug Info */}
+      {debugInfo.length > 0 && (
+        <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm">
+          <h3 className="font-semibold mb-2">Debug Info:</h3>
+          <ul className="space-y-1">
+            {debugInfo.map((info, i) => (
+              <li key={i} className="text-xs">{info}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   )
 }

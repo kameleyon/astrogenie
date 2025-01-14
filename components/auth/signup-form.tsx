@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,12 +10,9 @@ import Link from "next/link"
 import { supabase } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { validateSignUpForm } from "./utils/validation"
+import { motion } from "framer-motion"
 
-interface SignUpFormProps {
-  onLoginClick: () => void
-}
-
-export function SignUpForm({ onLoginClick }: SignUpFormProps) {
+export function SignUpForm({ onLoginClick }: { onLoginClick: () => void }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -25,9 +22,22 @@ export function SignUpForm({ onLoginClick }: SignUpFormProps) {
   const [loading, setLoading] = useState(false)
   const [retryAfter, setRetryAfter] = useState(0)
   const { toast } = useToast()
+  const [debugInfo, setDebugInfo] = useState<string[]>([])
+  const retryIntervalRef = useRef<NodeJS.Timeout>()
+
+  const addDebugInfo = (info: string) => {
+    console.log('Debug:', info)
+    setDebugInfo(prev => [...prev, info])
+    toast({
+      title: "Debug Info",
+      description: info,
+      duration: 5000,
+    })
+  }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    setDebugInfo([]) // Reset debug info
     
     const validationError = validateSignUpForm(email, password, confirmPassword, agreeToTerms)
     if (validationError) {
@@ -50,6 +60,7 @@ export function SignUpForm({ onLoginClick }: SignUpFormProps) {
 
     try {
       setLoading(true)
+      addDebugInfo("Starting signup process...")
 
       // Check if email already exists
       const { data: existingUser } = await supabase
@@ -59,6 +70,7 @@ export function SignUpForm({ onLoginClick }: SignUpFormProps) {
         .maybeSingle()
 
       if (existingUser) {
+        addDebugInfo("Email already registered")
         toast({
           title: "Email already registered",
           description: "This email is already registered. Please try logging in instead.",
@@ -69,6 +81,7 @@ export function SignUpForm({ onLoginClick }: SignUpFormProps) {
       }
 
       // Sign up with Supabase
+      addDebugInfo("Creating new user account...")
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -87,16 +100,25 @@ export function SignUpForm({ onLoginClick }: SignUpFormProps) {
           const waitTime = waitTimeMatch ? parseInt(waitTimeMatch[0]) : 60
           setRetryAfter(waitTime)
           
-          const interval = setInterval(() => {
+          // Clear any existing interval
+          if (retryIntervalRef.current) {
+            clearInterval(retryIntervalRef.current)
+          }
+
+          // Set up new interval
+          retryIntervalRef.current = setInterval(() => {
             setRetryAfter((prev) => {
               if (prev <= 1) {
-                clearInterval(interval)
+                if (retryIntervalRef.current) {
+                  clearInterval(retryIntervalRef.current)
+                }
                 return 0
               }
               return prev - 1
             })
           }, 1000)
 
+          addDebugInfo(`Rate limited: Wait ${waitTime} seconds`)
           toast({
             title: "Too many attempts",
             description: `Please wait ${waitTime} seconds before trying again.`,
@@ -105,6 +127,7 @@ export function SignUpForm({ onLoginClick }: SignUpFormProps) {
           return
         }
 
+        addDebugInfo(`Error: ${error.message}`)
         toast({
           title: "Error",
           description: error.message,
@@ -113,6 +136,33 @@ export function SignUpForm({ onLoginClick }: SignUpFormProps) {
         return
       }
 
+      addDebugInfo("Account created successfully")
+      
+      // Create Stripe checkout session
+      addDebugInfo("Creating checkout session...")
+      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke(
+        'create-checkout',
+        {
+          body: {
+            successUrl: `${window.location.origin}/billing/success`,
+            priceId: 'price_1QcWIaGTXKQOsgznnZmYCk1q',
+          }
+        }
+      )
+
+      if (checkoutError) {
+        addDebugInfo(`Checkout error: ${checkoutError.message}`)
+        throw checkoutError
+      }
+
+      if (!checkoutData?.url) {
+        addDebugInfo("No checkout URL in response")
+        throw new Error('No checkout URL in response')
+      }
+
+      addDebugInfo("Redirecting to checkout...")
+      window.location.href = checkoutData.url
+
       toast({
         title: "Success",
         description: "Please check your email to verify your account.",
@@ -120,6 +170,7 @@ export function SignUpForm({ onLoginClick }: SignUpFormProps) {
       })
 
     } catch (error: any) {
+      addDebugInfo(`Error: ${error.message}`)
       toast({
         title: "Error",
         description: error.message || "An error occurred during signup",
@@ -131,7 +182,12 @@ export function SignUpForm({ onLoginClick }: SignUpFormProps) {
   }
 
   return (
-    <div className="w-full max-w-md space-y-6 p-6 bg-card rounded-lg border border-[#D15200]/20 bg-white/5 shadow-xl">
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full max-w-md space-y-6 p-6 bg-card rounded-lg border border-[#D15200]/20 bg-white/5 shadow-xl"
+    >
       <div className="space-y-2 text-center">
         <h2 className="text-2xl font-semibold tracking-tight">JOIN FOR FREE!</h2>
         <p className="text-sm text-muted-foreground">
@@ -247,6 +303,18 @@ export function SignUpForm({ onLoginClick }: SignUpFormProps) {
           </button>
         </div>
       </form>
-    </div>
+
+      {/* Debug Info */}
+      {debugInfo.length > 0 && (
+        <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm">
+          <h3 className="font-semibold mb-2">Debug Info:</h3>
+          <ul className="space-y-1">
+            {debugInfo.map((info, i) => (
+              <li key={i} className="text-xs">{info}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </motion.div>
   )
 }

@@ -14,12 +14,16 @@ const nextConfig = {
   },
 
   webpack: (config, { isServer, dev }) => {
-    // Handle native modules (like swisseph-v2)
+    // Handle native modules and WebSocket dependencies
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
       path: false,
       os: false,
+      net: false,
+      tls: false,
+      'utf-8-validate': false,
+      bufferutil: false,
     }
 
     // Add node-loader for .node files
@@ -33,7 +37,9 @@ const nextConfig = {
       config.externals = [
         ...config.externals,
         'swisseph-v2',
-        'swisseph'
+        'swisseph',
+        'bufferutil',
+        'utf-8-validate'
       ]
     } else {
       // Client-side configuration
@@ -85,7 +91,14 @@ const nextConfig = {
   // Configure experimental features
   experimental: {
     serverActions: true,
-    serverComponentsExternalPackages: ['swisseph-v2', 'swisseph', 'tz-lookup', 'moment-timezone'],
+    serverComponentsExternalPackages: [
+      'swisseph-v2', 
+      'swisseph', 
+      'tz-lookup', 
+      'moment-timezone',
+      'bufferutil',
+      'utf-8-validate'
+    ],
   },
 
   // Configure redirects

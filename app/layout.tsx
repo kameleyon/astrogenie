@@ -3,6 +3,7 @@ import { Lato } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
+import { Toaster } from '@/components/ui/toaster'
 import type { Metadata } from 'next'
 
 const lato = Lato({ 
@@ -40,6 +41,7 @@ export default function RootLayout({
             <Navbar />
             <main className="flex-1 overflow-y-auto">{children}</main>
             <Footer />
+            <Toaster />
           </div>
         </ThemeProvider>
       </body>

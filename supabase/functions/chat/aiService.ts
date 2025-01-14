@@ -44,11 +44,11 @@ export async function generateAiResponse(
       success: true,
       data
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error generating AI response:', error);
     return {
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
     };
   }
 }

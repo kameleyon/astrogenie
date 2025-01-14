@@ -55,12 +55,13 @@ serve(async (req) => {
       if (subscription[0].credits_remaining <= 0) {
         throw new Error('No credits remaining');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Subscription check error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return new Response(
         JSON.stringify({ 
           error: 'Subscription check failed', 
-          details: error.message 
+          details: errorMessage
         }),
         { 
           status: 400,
@@ -86,8 +87,8 @@ serve(async (req) => {
       userId,
       message,
       aiResponse.data.choices[0].message.content,
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY
+      SUPABASE_URL || '',
+      SUPABASE_SERVICE_ROLE_KEY || ''
     );
 
     if (!creditsResult.success) {
@@ -108,10 +109,11 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in chat function:', error);
+    const err = error as Error
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: error.stack 
+      JSON.stringify({
+        error: err.message || 'An error occurred',
+        details: err.stack || ''
       }),
       { 
         headers: { 

@@ -1,14 +1,20 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, systemPrompt } from './config.ts';
-import { generateAiResponse } from './aiService.ts';
-import { handleCredits } from './creditsService.ts';
+import { corsHeaders, systemPrompt } from './config';
+import { generateAiResponse } from './aiService';
+import { handleCredits } from './creditsService';
 
 const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-serve(async (req) => {
+interface ChatRequest {
+  message: string;
+  userId: string;
+  context: Array<{ isUser: boolean; text: string; }>;
+}
+
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -19,7 +25,7 @@ serve(async (req) => {
       throw new Error('OpenRouter API key not configured');
     }
 
-    const { message, userId, context } = await req.json();
+    const { message, userId, context } = await req.json() as ChatRequest;
     console.log('Received request:', { message, userId, context });
 
     if (!message) {
@@ -55,12 +61,12 @@ serve(async (req) => {
       if (subscription[0].credits_remaining <= 0) {
         throw new Error('No credits remaining');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Subscription check error:', error);
       return new Response(
         JSON.stringify({ 
           error: 'Subscription check failed', 
-          details: error.message 
+          details: error instanceof Error ? error.message : 'Unknown error'
         }),
         { 
           status: 400,
@@ -77,8 +83,8 @@ serve(async (req) => {
       systemPrompt
     );
 
-    if (!aiResponse.success) {
-      throw new Error(aiResponse.error || 'Failed to generate AI response');
+    if (!aiResponse.success || !aiResponse.data?.choices?.[0]?.message?.content) {
+      throw new Error(aiResponse.error || 'Invalid AI response format');
     }
 
     // Handle credits
@@ -86,8 +92,8 @@ serve(async (req) => {
       userId,
       message,
       aiResponse.data.choices[0].message.content,
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY
+      SUPABASE_URL || '',
+      SUPABASE_SERVICE_ROLE_KEY || ''
     );
 
     if (!creditsResult.success) {
@@ -106,12 +112,15 @@ serve(async (req) => {
         } 
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in chat function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: error.stack 
+        error: errorMessage,
+        details: errorStack 
       }),
       { 
         headers: { 

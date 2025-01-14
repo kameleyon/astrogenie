@@ -1,12 +1,6 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { generateReportContent } from './reportGenerator.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from '../_shared/cors.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,46 +8,68 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json();
-    console.log('Generating report for user:', userId);
+    const { userId, year } = await req.json();
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) throw new Error('No authorization header');
 
-    const supabaseClient = createClient(
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: { headers: { Authorization: authHeader } }
+      }
     );
 
-    const { data: profile, error: profileError } = await supabaseClient
+    // Verify user exists
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) throw new Error('User not found');
+
+    // Get user's birth chart data
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('*')
+      .select('birth_date, birth_time, birth_location')
       .eq('id', userId)
       .single();
 
-    if (profileError) {
-      console.error('Error fetching profile:', profileError);
-      throw new Error('Failed to fetch user profile');
+    if (profileError) throw new Error('Birth chart data not found');
+    if (!profile.birth_date || !profile.birth_time || !profile.birth_location) {
+      throw new Error('Incomplete birth chart data');
     }
 
-    if (!profile) {
-      throw new Error('User profile not found');
-    }
-
-    console.log('Retrieved profile data:', profile);
-
-    const currentYear = new Date().getFullYear();
-    const reportContent = generateReportContent(profile, currentYear);
+    // TODO: Generate annual report using birth chart data and specified year
+    const report = {
+      year,
+      overview: "Your annual astrological report...",
+      sections: [
+        {
+          title: "Career & Finance",
+          content: "This year brings opportunities..."
+        },
+        {
+          title: "Relationships",
+          content: "Your relationships will..."
+        }
+      ]
+    };
 
     return new Response(
-      JSON.stringify({ reportContent }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify(report),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
     );
-
   } catch (error) {
     console.error('Error generating report:', error);
+    const err = error as Error;
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
+      JSON.stringify({ 
+        error: err.message || 'Failed to generate annual report',
+        details: err.stack || ''
+      }),
+      {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

@@ -42,11 +42,11 @@ export async function handleCredits(
       success: true,
       totalTokens
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error handling credits:', error);
     return {
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
     };
   }
 }

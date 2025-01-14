@@ -1,17 +1,33 @@
 export interface AiResponse {
   success: boolean;
-  data?: any;
+  data?: {
+    choices: Array<{
+      message: {
+        content: string;
+      };
+    }>;
+  };
   error?: string;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+interface ContextMessage {
+  isUser: boolean;
+  text: string;
 }
 
 export async function generateAiResponse(
   message: string,
-  context: any[],
+  context: ContextMessage[],
   openRouterApiKey: string,
   systemPrompt: string
 ): Promise<AiResponse> {
   try {
-    const conversationHistory = context?.map((msg: any) => ({
+    const conversationHistory = context?.map((msg: ContextMessage) => ({
       role: msg.isUser ? 'user' : 'assistant',
       content: msg.text
     })) || [];
@@ -44,11 +60,11 @@ export async function generateAiResponse(
       success: true,
       data
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error generating AI response:', error);
     return {
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
     };
   }
 }

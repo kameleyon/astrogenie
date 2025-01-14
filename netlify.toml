@@ -1,55 +1,6 @@
 [build]
   command = "npm run build"
   publish = ".next"
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF . ':(exclude)ephe/*'"
-
-[build.environment]
-  NEXT_PUBLIC_SITE_URL = "https://astrogenie.netlify.app"
-  NODE_VERSION = "18.20.0"
-  NPM_VERSION = "9.x"
-  ENABLE_NATIVE_MODULES = "true"
-  LD_LIBRARY_PATH = "/usr/local/lib"
-  SWISSEPH_PATH = "/var/task/ephe"
-  NPM_CONFIG_OPTIONAL = "true"
-  NODE_ENV = "production"
-
-[functions]
-  node_bundler = "esbuild"
-  external_node_modules = [
-    "react-dom",
-    "react-dom/server.edge",
-    "react-dom/server-rendering-stub",
-    "react-server-dom-webpack/client.edge",
-    "react-server-dom-webpack/server.edge",
-    "react-server-dom-webpack/server.node",
-    "@opentelemetry/api"
-  ]
-
-[functions."*"]
-  included_files = [
-    "ephe/**",
-    ".next/required-server-files.json",
-    ".next/server/**/*",
-    ".next/static/**/*"
-  ]
-
-[functions.next_api_calculate]
-  node_bundler = "esbuild"
-  included_files = [
-    "ephe/**",
-    ".next/required-server-files.json",
-    ".next/server/**/*",
-    ".next/static/**/*"
-  ]
-  external_node_modules = []
-  environment = { SWISSEPH_PATH = "/var/task/ephe" }
-
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-    Access-Control-Allow-Headers = "Content-Type"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Origin = "*"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
